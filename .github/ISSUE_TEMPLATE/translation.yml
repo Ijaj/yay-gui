@@ -1,0 +1,39 @@
+name: Translation
+description: Offer a translation, or report a translation problem
+labels: ["i18n", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping translate YayGUI. Translations are coordinated through this issue so that two people do not translate the same language at once.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What do you want to do?
+      options:
+        - Start or update a translation
+        - Report a wrong or unclear string
+        - Report a missing translation
+    validations:
+      required: true
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: Language name and locale code, for example Bengali (bn) or German (de-DE).
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: For problems, name the string or screen and say what it should be. For new translations, say whether you can commit to keeping it up to date.
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmation
+      options:
+        - label: I am happy for my contribution to be released under the project license (GPL-3.0-or-later).
+          required: true

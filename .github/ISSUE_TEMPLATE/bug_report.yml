@@ -1,0 +1,72 @@
+name: Bug report
+description: Something does not work as expected
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do **not** report security problems here; see SECURITY.md.
+        Never paste passwords or AUR credentials into this form.
+  - type: input
+    id: yay-version
+    attributes:
+      label: "`yay --version` output"
+      placeholder: "yay v13.x.x ..."
+    validations:
+      required: true
+  - type: input
+    id: pacman-version
+    attributes:
+      label: "`pacman --version` output (first line is enough)"
+      placeholder: "Current Pacman version ..."
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and version
+      description: For example Arch Linux, EndeavourOS, CachyOS, Garuda. Include `uname -r` if you can.
+      placeholder: "EndeavourOS, kernel 6.x.y"
+    validations:
+      required: true
+  - type: input
+    id: yaygui-version
+    attributes:
+      label: YayGUI version or commit
+      placeholder: "0.0.1 or a commit hash"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, and what happened? Include the package names involved.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the terminal pane output or the relevant part of the app log. Redact anything sensitive.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am not running YayGUI as root.
+          required: true

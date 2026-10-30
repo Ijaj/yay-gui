@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust format, lint and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all --check
+      - name: Clippy (warnings are errors)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+
+  deny:
+    name: Supply chain (cargo deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  ui:
+    name: UI (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+        # The steps below are skipped until apps/desktop has a lockfile.
+      - uses: pnpm/action-setup@v4
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - name: Install
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        run: pnpm lint
+      - name: Typecheck
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        run: pnpm typecheck
+      - name: Test
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        run: pnpm test
+      - name: Build
+        if: ${{ hashFiles('apps/desktop/pnpm-lock.yaml') != '' }}
+        run: pnpm build

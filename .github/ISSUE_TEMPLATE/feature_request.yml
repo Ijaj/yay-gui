@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        YayGUI puts safety first. Proposals that weaken the safety rules (no root, no partial upgrades, mandatory AUR review, no shell strings) are unlikely to be accepted. See the README's safety principles.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Mention the yay command it would correspond to, if any.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Search and discovery
+        - Install and remove
+        - Updates
+        - Maintenance (cache, orphans, stats)
+        - Review and safety
+        - Configuration
+        - Terminal pane
+        - Appearance and accessibility
+        - Translations
+        - Packaging and docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
