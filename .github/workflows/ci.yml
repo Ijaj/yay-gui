@@ -47,7 +47,6 @@ jobs:
         working-directory: apps/desktop
     steps:
       - uses: actions/checkout@v4
-        # The steps below are skipped until apps/desktop has a lockfile.
       - uses: pnpm/action-setup@v4
         with:
           version: 10
