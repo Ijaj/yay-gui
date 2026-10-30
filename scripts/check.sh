@@ -22,6 +22,9 @@ rust() {
   cargo fmt --all --check
   step "cargo clippy"
   cargo clippy --workspace --all-targets -- -D warnings
+  # docs-rs: type-check the alpm bindings without linking libalpm.
+  step "cargo clippy (libalpm feature)"
+  cargo clippy -p yaygui-alpm-reader --features libalpm,alpm/docs-rs --all-targets -- -D warnings
   step "cargo test"
   cargo test --workspace
 }
