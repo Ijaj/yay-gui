@@ -39,7 +39,8 @@ Reads never go through yay. Package data comes from libalpm (read-only) and the 
 crates/core          domain types, transaction planner, safety rules (no Tauri dependency)
 crates/alpm-reader   read-only libalpm queries
 crates/aur-client    AUR RPC v5 client, batching, caching
-crates/yay-runner    PTY spawning, output handling, prompt detection
+crates/yay-runner    PTY spawning, output handling, prompt detection, transaction runner
+crates/review        AUR git fetch, PKGBUILD diffs, review history
 apps/desktop         Tauri 2 app: React + TypeScript UI and Rust commands
 docs/adr             architecture decision records
 ```
@@ -70,6 +71,8 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
 # Arch
 sudo pacman -S --needed webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel
 ```
+
+Debug builds run the program named in `YAYGUI_YAY` instead of `yay`, so the run flow can be tried against a fake script (for example `crates/yay-runner/tests/fixtures/fake-tx.sh`). Release builds ignore it.
 
 `cargo build --workspace` also compiles the Tauri crate, which expects `apps/desktop/dist` to exist (run `pnpm build` or `mkdir -p apps/desktop/dist`).
 

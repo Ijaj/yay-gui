@@ -1,15 +1,18 @@
+import { LogView } from "../features/transaction/TransactionScreen";
 import { t } from "../i18n";
+import { useTransaction } from "../state/transaction";
 import { useUi } from "../state/ui";
 
-/** Placeholder; xterm.js and live transaction output come later. */
+/** Plain-text transaction output; xterm.js and direct keyboard input come later. */
 export function TerminalDrawer() {
   const open = useUi((s) => s.terminalOpen);
   const setOpen = useUi((s) => s.setTerminalOpen);
+  const ran = useTransaction((s) => s.state !== null);
   if (!open) return null;
   return (
     <section
       aria-label={t("terminal.title")}
-      className="h-56 shrink-0 border-t border-border bg-surface-2"
+      className="flex h-56 shrink-0 flex-col border-t border-border bg-surface-2"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-1.5">
         <h2 className="text-sm font-semibold">{t("terminal.title")}</h2>
@@ -21,7 +24,11 @@ export function TerminalDrawer() {
           {t("terminal.close")}
         </button>
       </div>
-      <p className="p-4 font-mono text-muted">{t("terminal.idle")}</p>
+      {ran ? (
+        <LogView className="min-h-0 flex-1" />
+      ) : (
+        <p className="p-4 font-mono text-muted">{t("terminal.idle")}</p>
+      )}
     </section>
   );
 }

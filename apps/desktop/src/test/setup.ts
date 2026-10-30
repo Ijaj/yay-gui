@@ -40,3 +40,6 @@ class RO {
 globalThis.ResizeObserver = RO as unknown as typeof ResizeObserver;
 window.ResizeObserver = RO as unknown as typeof ResizeObserver;
 Element.prototype.scrollIntoView = () => {};
+// CodeMirror measures text ranges, which jsdom does not lay out.
+Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect = () => document.body.getBoundingClientRect();

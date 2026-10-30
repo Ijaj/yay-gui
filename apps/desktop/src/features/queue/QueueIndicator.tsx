@@ -1,11 +1,14 @@
+import { useNavigate } from "react-router";
 import { t } from "../../i18n";
 import { useQueue } from "../../state/queue";
 
 export function QueueIndicator() {
   const count = useQueue((s) => s.items.length);
+  const navigate = useNavigate();
   return (
     <button
       type="button"
+      onClick={() => navigate("/queue")}
       aria-label={t("header.queueLabel", { count })}
       className="inline-flex items-center gap-2 rounded-ui-sm border border-border bg-surface px-3 py-1.5 font-medium hover:bg-surface-2"
     >

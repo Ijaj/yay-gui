@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useUi } from "../state/ui";
 import { GLOBAL_SEARCH_ID } from "./Header";
 
@@ -9,11 +10,17 @@ function isTypingTarget(el: EventTarget | null): boolean {
 
 export function useGlobalShortcuts() {
   const toggleTerminal = useUi((s) => s.toggleTerminal);
+  const navigate = useNavigate();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey && !e.altKey && !e.metaKey && e.key.toLowerCase() === "j") {
         e.preventDefault();
         toggleTerminal();
+        return;
+      }
+      if (e.ctrlKey && !e.altKey && !e.metaKey && e.key === "Enter") {
+        e.preventDefault();
+        navigate("/queue");
         return;
       }
       if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !isTypingTarget(e.target)) {
@@ -23,5 +30,5 @@ export function useGlobalShortcuts() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [toggleTerminal]);
+  }, [toggleTerminal, navigate]);
 }
