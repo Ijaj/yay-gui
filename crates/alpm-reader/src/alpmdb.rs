@@ -85,7 +85,7 @@ impl PackageDb for AlpmDb {
         for db in self.handle.syncdbs() {
             // libalpm ANDs the terms and matches name/description, case-insensitively.
             if let Ok(found) = db.search(terms.iter().copied()) {
-                out.extend(found.iter().map(|p| Self::repo_pkg(p, db.name())));
+                out.extend(found.into_iter().map(|p| Self::repo_pkg(p, db.name())));
             }
         }
         out
