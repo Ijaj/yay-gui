@@ -5106,11 +5106,25 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
  "tokio",
  "yaygui-alpm-reader",
  "yaygui-aur-client",
  "yaygui-core",
+ "yaygui-review",
  "yaygui-yay-runner",
+ "zeroize",
+]
+
+[[package]]
+name = "yaygui-review"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "yaygui-core",
 ]
 
 [[package]]
@@ -5121,6 +5135,7 @@ dependencies = [
  "rpassword",
  "tempfile",
  "thiserror 2.0.21",
+ "yaygui-core",
  "zeroize",
 ]
 

@@ -1,0 +1,20 @@
+[package]
+name = "yaygui-review"
+description = "PKGBUILD fetching, diffs and review history for YayGUI"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+thiserror = "2"
+yaygui-core = { path = "../core" }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
