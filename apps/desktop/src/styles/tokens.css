@@ -1,0 +1,63 @@
+/* Design tokens. libadwaita-ish neutral palette; light by default, dark via media query. */
+:root {
+  color-scheme: light dark;
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", "Cantarell", "Noto Sans", "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Source Code Pro", Menlo, Consolas, monospace;
+
+  --bg: #fafafb;
+  --surface: #ffffff;
+  --surface-2: #f0f0f2;
+  --sidebar: #ebebed;
+  --border: #d9d9de;
+  --text: #1f1f24;
+  --text-muted: #5e5e69;
+  --accent: #3584e4;
+  --accent-hover: #2a74cc;
+  --accent-contrast: #ffffff;
+  --focus: #1c71d8;
+  --danger: #c01c28;
+  --danger-bg: #fdecec;
+  --warning: #8a5a00;
+  --warning-bg: #fff4d6;
+  --success: #1b7a43;
+  --success-bg: #e3f5ea;
+
+  --badge-core: #b3261e;
+  --badge-extra: #1e6fcc;
+  --badge-multilib: #7a4cc0;
+  --badge-aur: #b45d00;
+  --badge-other: #5e5e69;
+
+  --radius: 8px;
+  --radius-sm: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e22;
+    --surface: #2a2a30;
+    --surface-2: #34343b;
+    --sidebar: #242429;
+    --border: #44444d;
+    --text: #f2f2f5;
+    --text-muted: #a8a8b4;
+    --accent: #62a0ea;
+    --accent-hover: #78aeee;
+    --accent-contrast: #0b1a2e;
+    --focus: #78aeee;
+    --danger: #ff7b82;
+    --danger-bg: #43232a;
+    --warning: #f8d27a;
+    --warning-bg: #403418;
+    --success: #78d9a0;
+    --success-bg: #1e3a2a;
+
+    --badge-core: #ff8a82;
+    --badge-extra: #78aeee;
+    --badge-multilib: #c4a1f0;
+    --badge-aur: #ffb454;
+    --badge-other: #a8a8b4;
+  }
+}
