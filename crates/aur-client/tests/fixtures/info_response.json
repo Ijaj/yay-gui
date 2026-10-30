@@ -1,0 +1,35 @@
+{
+  "version": 5,
+  "type": "multiinfo",
+  "resultcount": 1,
+  "results": [
+    {
+      "CheckDepends": ["check"],
+      "CoMaintainers": ["bob"],
+      "Conflicts": ["foo"],
+      "Depends": ["glibc", "gtk3"],
+      "Description": "A Foo of the AUR",
+      "FirstSubmitted": 1496500000,
+      "Groups": ["foos"],
+      "ID": 1111111,
+      "Keywords": ["foo", "bar"],
+      "LastModified": 1730000000,
+      "License": ["GPL-3.0-or-later"],
+      "Maintainer": "alice",
+      "MakeDepends": ["cargo"],
+      "Name": "foo-bin",
+      "NumVotes": 42,
+      "OptDepends": ["bar: extra support"],
+      "OutOfDate": null,
+      "PackageBase": "foo-bin",
+      "PackageBaseID": 222222,
+      "Popularity": 1.234567,
+      "Provides": ["foo"],
+      "Replaces": ["old-foo"],
+      "Submitter": "alice",
+      "URL": "https://example.org/foo",
+      "URLPath": "/cgit/aur.git/snapshot/foo-bin.tar.gz",
+      "Version": "1.2.3-1"
+    }
+  ]
+}
