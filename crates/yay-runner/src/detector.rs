@@ -169,10 +169,10 @@ impl PromptDetector {
     fn finish_line(&mut self, out: &mut Vec<PromptEvent>) {
         let text = String::from_utf8_lossy(&self.line).into_owned();
         self.line.clear();
-        if !self.prompt_emitted {
-            if let Some(ev) = self.match_prompt(&text).or_else(|| classify_error(&text)) {
-                out.push(ev);
-            }
+        if !self.prompt_emitted
+            && let Some(ev) = self.match_prompt(&text).or_else(|| classify_error(&text))
+        {
+            out.push(ev);
         }
         self.prompt_emitted = false;
         if self.recent.len() >= 4 {

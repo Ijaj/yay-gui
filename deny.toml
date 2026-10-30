@@ -37,10 +37,19 @@ allow = [
     "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.9
+# alpm and alpm-sys (optional `libalpm` feature) still declare the deprecated
+# SPDX id "GPL-3.0", which means GPL-3.0-only: compatible with distributing a
+# GPL-3.0-or-later binary.
+exceptions = [
+    { allow = ["GPL-3.0"], crate = "alpm" },
+    { allow = ["GPL-3.0"], crate = "alpm-sys" },
+]
 
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Workspace crates depend on each other by path; they are not published.
+allow-wildcard-paths = true
 highlight = "all"
 
 [sources]
