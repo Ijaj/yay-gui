@@ -1,0 +1,1 @@
+//! yaygui-alpm-reader (stub)

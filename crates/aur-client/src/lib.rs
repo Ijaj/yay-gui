@@ -1,0 +1,1 @@
+//! yaygui-aur-client (stub)

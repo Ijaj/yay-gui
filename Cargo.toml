@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+# apps/desktop/src-tauri needs webkit2gtk-4.1 and is added in a later step.
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+license = "GPL-3.0-or-later"
+rust-version = "1.85"
+repository = "https://github.com/ijaj/yay-gui"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
