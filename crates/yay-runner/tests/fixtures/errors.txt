@@ -1,0 +1,6 @@
+error: failed to init transaction (unable to lock database)
+error: target not found: nosuchpkg
+error: failed to commit transaction (conflicting files)
+==> ERROR: A failure occurred in build().
+    Aborting...
+Error making: foo

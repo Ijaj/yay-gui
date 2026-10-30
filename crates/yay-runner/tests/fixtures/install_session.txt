@@ -1,0 +1,8 @@
+:: Synchronizing package databases...
+ core is up to date
+:: Replace foo-old with extra/foo? [y/N] 
+[sudo] password for alice: 
+Sorry, try again.
+[sudo] password for alice: 
+
+:: Proceed with installation? [Y/n] 
