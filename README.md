@@ -52,9 +52,26 @@ Requirements: a stable Rust toolchain (1.85 or newer), Node.js 22 and pnpm.
 # Rust crates
 cargo test --workspace
 
-# Desktop UI (once apps/desktop is in the repository)
+# Desktop UI only (browser, uses mock data)
 cd apps/desktop && pnpm install && pnpm dev
+
+# Full desktop app (Tauri window + Rust backend)
+cd apps/desktop && pnpm install && pnpm tauri dev
 ```
+
+Building the Tauri app needs the WebKitGTK 4.1 development packages:
+
+```sh
+# Ubuntu / Debian
+sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+  libayatana-appindicator3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
+  build-essential pkg-config
+
+# Arch
+sudo pacman -S --needed webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel
+```
+
+`cargo build --workspace` also compiles the Tauri crate, which expects `apps/desktop/dist` to exist (run `pnpm build` or `mkdir -p apps/desktop/dist`).
 
 Anything that touches pacman or yay must be tested inside a disposable Arch container, never on your everyday system. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
