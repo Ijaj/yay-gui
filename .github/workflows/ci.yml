@@ -1,9 +1,10 @@
 name: CI
 
+# Manual only, to save Actions minutes: run scripts/check.sh locally before
+# pushing, and start this workflow from the Actions tab when you want a clean
+# run on GitHub's runners.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

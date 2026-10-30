@@ -6,7 +6,7 @@ members = ["crates/*", "apps/desktop/src-tauri"]
 version = "0.0.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
-rust-version = "1.85"
+rust-version = "1.88"
 repository = "https://github.com/ijaj/yay-gui"
 
 [workspace.lints.rust]

@@ -13,7 +13,7 @@ Thanks for helping. YayGUI is pre-alpha, so the best contributions right now are
 
 You need:
 
-- Rust stable, 1.85 or newer (the workspace uses edition 2024)
+- Rust stable, 1.88 or newer (the workspace uses edition 2024)
 - Node.js 22 and pnpm (for the UI, once `apps/desktop` is in the repository)
 - Git
 
@@ -29,6 +29,12 @@ For the UI:
 cd apps/desktop
 pnpm install
 pnpm dev
+```
+
+Before pushing, run everything CI runs (CI on GitHub is started by hand only):
+
+```sh
+scripts/check.sh            # or: scripts/check.sh rust | deny | ui
 ```
 
 ## Testing against pacman: use an Arch container

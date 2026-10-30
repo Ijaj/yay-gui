@@ -47,9 +47,12 @@ docs/adr             architecture decision records
 
 ## Development
 
-Requirements: a stable Rust toolchain (1.85 or newer), Node.js 22 and pnpm.
+Requirements: a stable Rust toolchain (1.88 or newer), Node.js 22 and pnpm.
 
 ```sh
+# All CI checks locally (Rust, cargo deny, UI)
+scripts/check.sh
+
 # Rust crates
 cargo test --workspace
 

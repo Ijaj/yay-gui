@@ -59,10 +59,10 @@ fn parse_desc(text: &str) -> Desc {
         let line = line.trim_end();
         if line.len() > 2 && line.starts_with('%') && line.ends_with('%') {
             cur = Some(map.entry(line[1..line.len() - 1].to_string()).or_default());
-        } else if !line.is_empty() {
-            if let Some(v) = cur.as_mut() {
-                v.push(line.to_string());
-            }
+        } else if !line.is_empty()
+            && let Some(v) = cur.as_mut()
+        {
+            v.push(line.to_string());
         }
     }
     map
