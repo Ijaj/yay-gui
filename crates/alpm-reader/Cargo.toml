@@ -25,4 +25,4 @@ alpm = { version = "4", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
-zstd = "0.13"
+zstd = "0.14"
