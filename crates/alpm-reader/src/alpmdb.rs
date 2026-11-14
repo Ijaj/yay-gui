@@ -56,11 +56,12 @@ impl AlpmDb {
     }
 
     fn local_pkg(&self, pkg: &Package) -> LocalPackage {
-        let foreign = !self
+        let repo = self
             .handle
             .syncdbs()
             .iter()
-            .any(|db| db.pkg(pkg.name()).is_ok());
+            .find(|db| db.pkg(pkg.name()).is_ok())
+            .map(|db| db.name().to_owned());
         LocalPackage {
             name: pkg.name().into(),
             version: pkg.version().to_string(),
@@ -71,7 +72,8 @@ impl AlpmDb {
             },
             install_date: pkg.install_date(),
             installed_size: pkg.isize().max(0) as u64,
-            foreign,
+            foreign: repo.is_none(),
+            repo,
             required_by: pkg.required_by().iter().map(|s| s.to_string()).collect(),
             optional_for: pkg.optional_for().iter().map(|s| s.to_string()).collect(),
         }

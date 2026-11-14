@@ -1,5 +1,6 @@
 //! YayGUI desktop backend (Tauri 2).
 
+mod installed;
 mod plan;
 mod review;
 mod search;
@@ -23,6 +24,14 @@ async fn search_packages(
     query: String,
 ) -> Result<search::SearchResponse, String> {
     Ok(state.search(&query).await)
+}
+
+#[tauri::command]
+async fn list_installed(
+    state: tauri::State<'_, AppState>,
+    refresh: bool,
+) -> Result<installed::InstalledResponse, String> {
+    Ok(state.installed(refresh).await)
 }
 
 #[tauri::command]
@@ -113,6 +122,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             search_packages,
+            list_installed,
             plan_transaction,
             get_review,
             approve_review,

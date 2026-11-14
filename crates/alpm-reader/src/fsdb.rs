@@ -3,7 +3,7 @@
 use crate::PackageDb;
 use crate::types::{InstalledFilter, LocalPackage, OptDepend, Reason, RepoPackage};
 use regex::{Regex, RegexBuilder};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -198,7 +198,11 @@ impl FsDb {
             path: path.to_path_buf(),
             source,
         };
-        let in_sync: HashSet<&str> = sync.iter().map(|p| p.name.as_str()).collect();
+        // Repos are in priority order, so the first one to have a name wins.
+        let mut in_sync: HashMap<&str, &str> = HashMap::new();
+        for p in sync {
+            in_sync.entry(p.name.as_str()).or_insert(p.repo.as_str());
+        }
         let mut local = Vec::new();
         let rd = match std::fs::read_dir(dir) {
             Ok(rd) => rd,
@@ -227,7 +231,8 @@ impl FsDb {
             };
             local.push(LocalEntry {
                 pkg: LocalPackage {
-                    foreign: !in_sync.contains(name.as_str()),
+                    foreign: !in_sync.contains_key(name.as_str()),
+                    repo: in_sync.get(name.as_str()).map(|r| (*r).to_owned()),
                     name,
                     version,
                     description: first(&d, "DESC").unwrap_or_default(),

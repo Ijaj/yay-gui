@@ -1,5 +1,6 @@
 import { mockBackend, mockSearchPackages } from "./mock";
 import type {
+  InstalledResponse,
   PlanResponse,
   QueueItemRequest,
   ReviewBundle,
@@ -34,6 +35,12 @@ export const api = {
       return call<SearchResponse>("search_packages", { ...args });
     }
     return mockSearchPackages(query);
+  },
+
+  /** Every installed package. `refresh` re-reads the pacman database from disk. */
+  async listInstalled(refresh = false): Promise<InstalledResponse> {
+    if (isTauri()) return call("list_installed", { refresh });
+    return mockBackend.installed();
   },
 
   async planTransaction(items: QueueItemRequest[], skipReview: boolean): Promise<PlanResponse> {

@@ -167,7 +167,11 @@ fn reverse_deps_and_details() {
         (g.install_date, g.installed_size, g.foreign),
         (Some(1_700_000_100), 1000, false)
     );
-    assert!(db.local_package("aurpkg").unwrap().foreign);
+    let aur = db.local_package("aurpkg").unwrap();
+    assert!(aur.foreign);
+    assert_eq!(aur.repo, None);
+    assert_eq!(g.repo.as_deref(), Some("core"));
+    assert_eq!(rg.repo.as_deref(), Some("extra"));
 }
 
 #[test]

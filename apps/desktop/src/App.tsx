@@ -2,9 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { HashRouter, Route, Routes } from "react-router";
 import { AppShell } from "./components/AppShell";
+import { InstalledScreen } from "./features/installed/InstalledScreen";
 import {
   HomeScreen,
-  InstalledScreen,
   MaintenanceScreen,
   SettingsScreen,
   UpdatesScreen,

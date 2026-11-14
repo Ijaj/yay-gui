@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::ipc::Channel;
-use yaygui_alpm_reader::{FsConfig, FsDb, PackageDb};
+use yaygui_alpm_reader::FsConfig;
 use yaygui_aur_client::{AurClient, AurConfig, Package as AurPackage, SearchBy};
 use yaygui_core::{PackageName, TransactionState};
 use yaygui_review::{AurGit, ReviewStore, review_status};
@@ -16,14 +16,15 @@ use yaygui_yay_runner::{
 };
 use zeroize::Zeroizing;
 
+use crate::installed::{
+    DbCache, InstalledResponse, SharedDb, installed_response, repos_or_default,
+};
 use crate::plan::{
     self, Facts, MAX_AUR_PACKAGES, PlanErrorDto, PlanErrorKind, PlanOutcome, QueueItemDto,
 };
 use crate::review::ReviewBundle;
 use crate::search::{SearchResponse, merge_results};
 use crate::tx::{self, TxEventDto, TxRecord, Utf8Decoder};
-
-type SharedDb = Arc<dyn PackageDb + Send + Sync>;
 
 fn now() -> i64 {
     SystemTime::now()
@@ -49,8 +50,8 @@ fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 
 pub struct AppState {
     aur: AurClient,
-    /// `None` when the pacman databases cannot be read (e.g. not on Arch).
-    db: Option<SharedDb>,
+    /// The pacman databases, reloaded when pacman changes them.
+    db: Arc<DbCache>,
     git: AurGit,
     /// `Err` holds the reason the review store could not be opened.
     store: Mutex<Result<ReviewStore, String>>,
@@ -67,13 +68,11 @@ pub struct AppState {
 impl AppState {
     pub fn new() -> Result<Self, yaygui_aur_client::Error> {
         let aur = AurClient::new(AurConfig::default())?;
-        let db: Option<SharedDb> = match FsDb::open(&FsConfig::default()) {
-            Ok(db) => Some(Arc::new(db)),
-            Err(e) => {
-                eprintln!("yaygui: pacman database unavailable ({e}); repo results will be empty");
-                None
-            }
-        };
+        let pacman_conf = std::fs::read_to_string("/etc/pacman.conf").ok();
+        let db = Arc::new(DbCache::new(FsConfig {
+            repos: repos_or_default(pacman_conf.as_deref()),
+            ..FsConfig::default()
+        }));
         let data_dir = xdg_dir("XDG_DATA_HOME", ".local/share").join("yaygui");
         let cache_dir = xdg_dir("XDG_CACHE_HOME", ".cache").join("yaygui");
         let store = ReviewStore::open(data_dir.join("reviews.json")).map_err(|e| e.to_string());
@@ -99,6 +98,29 @@ impl AppState {
         })
     }
 
+    /// The current pacman databases; `Err` when they cannot be read (e.g. not on Arch).
+    async fn load_db(&self, force: bool) -> Result<SharedDb, String> {
+        let cache = self.db.clone();
+        tauri::async_runtime::spawn_blocking(move || cache.get(force))
+            .await
+            .unwrap_or_else(|e| Err(format!("internal error: {e}")))
+    }
+
+    async fn db(&self) -> Option<SharedDb> {
+        self.load_db(false).await.ok()
+    }
+
+    /// Every installed package. `refresh` re-reads the database from disk.
+    pub async fn installed(&self, refresh: bool) -> InstalledResponse {
+        let db = self.load_db(refresh).await;
+        tauri::async_runtime::spawn_blocking(move || installed_response(db))
+            .await
+            .unwrap_or_else(|e| InstalledResponse {
+                packages: Vec::new(),
+                error: Some(format!("internal error: {e}")),
+            })
+    }
+
     /// Search repos and the AUR concurrently. Never fails: AUR problems are
     /// reported in `aur_error`.
     pub async fn search(&self, query: &str) -> SearchResponse {
@@ -107,8 +129,9 @@ impl AppState {
             return SearchResponse::default();
         }
 
+        let db = self.db().await;
         let repo_task = {
-            let db = self.db.clone();
+            let db = db.clone();
             let q = query.clone();
             tauri::async_runtime::spawn_blocking(move || {
                 db.map(|db| db.search(&q)).unwrap_or_default()
@@ -119,7 +142,6 @@ impl AppState {
         let repo = repo.unwrap_or_default();
         let aur = aur.map_err(|e| e.to_string());
 
-        let db = self.db.clone();
         let merged = tauri::async_runtime::spawn_blocking(move || {
             merge_results(repo, aur, |name| {
                 db.as_ref()
@@ -140,17 +162,14 @@ impl AppState {
             Ok(q) => q,
             Err(e) => return PlanOutcome::error(e),
         };
+        let db = self.db().await;
 
         // "repo" claims come from the frontend: confirm them, so an AUR package
         // can never be passed off as a repo package to dodge review.
         let repo_names = plan::installs(&queue, false);
         let missing: Vec<String> = repo_names
             .iter()
-            .filter(|n| {
-                self.db
-                    .as_ref()
-                    .is_none_or(|db| db.sync_package(n).is_none())
-            })
+            .filter(|n| db.as_ref().is_none_or(|db| db.sync_package(n).is_none()))
             .cloned()
             .collect();
         if !missing.is_empty() {
@@ -161,7 +180,7 @@ impl AppState {
             ));
         }
 
-        let (aur, dependency_of) = match self.resolve_aur(&queue, &repo_names).await {
+        let (aur, dependency_of) = match self.resolve_aur(db.as_ref(), &queue, &repo_names).await {
             Ok(v) => v,
             Err(e) => return PlanOutcome::error(e),
         };
@@ -185,6 +204,7 @@ impl AppState {
     /// that neither the repos nor the system provide.
     async fn resolve_aur(
         &self,
+        db: Option<&SharedDb>,
         queue: &[yaygui_core::QueueItem],
         repo_names: &[String],
     ) -> Result<(HashMap<String, AurPackage>, HashMap<String, String>), PlanErrorDto> {
@@ -194,9 +214,7 @@ impl AppState {
         let mut frontier: Vec<String> = queued.iter().cloned().collect();
         let satisfied = |d: &str| {
             repo_names.iter().any(|r| r == d)
-                || self
-                    .db
-                    .as_ref()
+                || db
                     .is_some_and(|db| db.sync_package(d).is_some() || db.local_package(d).is_some())
         };
         while !frontier.is_empty() {
