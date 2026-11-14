@@ -207,6 +207,9 @@ impl FsDb {
         };
         for ent in rd {
             let ent = ent.map_err(|e| io(dir, e))?;
+            if !ent.file_type().map_err(|e| io(dir, e))?.is_dir() {
+                continue;
+            }
             let desc_path = ent.path().join("desc");
             let text = match std::fs::read_to_string(&desc_path) {
                 Ok(t) => t,
