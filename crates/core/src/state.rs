@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Lifecycle state of a transaction.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum TransactionState {
     /// Planned, nothing shown yet.

@@ -14,6 +14,7 @@ use serde::Serialize;
 pub type SharedDb = Arc<dyn PackageDb + Send + Sync>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledPackage {
     pub name: String,
@@ -52,14 +53,17 @@ impl From<LocalPackage> for InstalledPackage {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledResponse {
     pub packages: Vec<InstalledPackage>,
     /// Set when the pacman database could not be read.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub error: Option<String>,
     /// Sync databases that were skipped (their packages look foreign).
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(test, ts(as = "Option<Vec<String>>", optional))]
     pub warnings: Vec<String>,
 }
 

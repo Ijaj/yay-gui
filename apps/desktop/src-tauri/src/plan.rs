@@ -27,19 +27,31 @@ pub enum SourceDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(rename = "QueueItemRequest"))]
 #[serde(
     tag = "kind",
     rename_all = "snake_case",
     rename_all_fields = "camelCase"
 )]
 pub enum QueueItemDto {
-    Install { name: String, source: SourceDto },
-    Remove { name: String, mode: RemoveMode },
-    SystemUpgrade { devel: bool },
+    Install {
+        name: String,
+        #[cfg_attr(test, ts(as = "crate::search::PackageSource"))]
+        source: SourceDto,
+    },
+    Remove {
+        name: String,
+        mode: RemoveMode,
+    },
+    SystemUpgrade {
+        devel: bool,
+    },
     CleanOrphans,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum PlanErrorKind {
     Invalid,
@@ -54,6 +66,8 @@ pub enum PlanErrorKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(rename = "PlanError"))]
 #[serde(rename_all = "camelCase")]
 pub struct PlanErrorDto {
     pub kind: PlanErrorKind,
@@ -87,6 +101,8 @@ impl From<PlanError> for PlanErrorDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(rename = "PlannedCommand"))]
 #[serde(rename_all = "camelCase")]
 pub struct CommandDto {
     pub description: String,
@@ -95,6 +111,7 @@ pub struct CommandDto {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "snake_case")]
 pub enum ReviewState {
     NotReviewed,
@@ -103,6 +120,7 @@ pub enum ReviewState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewItem {
     pub name: String,
@@ -110,20 +128,24 @@ pub struct ReviewItem {
     pub version: String,
     pub status: ReviewState,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub approved_commit: Option<String>,
     /// Set for AUR dependencies that were not queued themselves.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub dependency_of: Option<String>,
     pub maintainer: Option<String>,
     pub last_modified: i64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct PlanResponse {
     pub commands: Vec<CommandDto>,
     pub reviews: Vec<ReviewItem>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub error: Option<PlanErrorDto>,
     /// `/var/lib/pacman/db.lck` exists: another package manager is running (or crashed).
     pub lock_held: bool,

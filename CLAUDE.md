@@ -25,6 +25,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - `scripts/check.sh rust`: `cargo fmt --all --check`, clippy `-D warnings` (workspace and the alpm docs-rs feature), `cargo test --workspace`.
 - `scripts/check.sh ui`: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - `cargo test --workspace` alone is fine for quick crate work.
+- `cargo test -p aurdeck export_bindings -- --ignored` regenerates `apps/desktop/src/api/generated` (TypeScript types from the Rust DTOs, ts-rs). Run it after changing any type that crosses the Tauri boundary; `generated_ts_bindings_are_current` fails when the committed files are stale.
 - Tauri crate: building it needs the WebKitGTK 4.1 dev packages (Arch: `webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel`; Debian/Ubuntu list is in README).
 - Tauri crate: its build script expects `apps/desktop/dist` to exist. Run `mkdir -p apps/desktop/dist` or `pnpm build` first.
 - `scripts/check.sh deny` needs `cargo-deny`, which may not be installed. If `command -v cargo-deny` fails, do not install it silently. Check new dependency licences by hand against `deny.toml` and say so in your report.

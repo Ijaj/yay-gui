@@ -26,6 +26,7 @@ pub struct PackageRef {
 }
 
 /// How aggressively to remove a package.
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RemoveMode {

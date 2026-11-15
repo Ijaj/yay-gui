@@ -1,5 +1,7 @@
 //! aurdeck desktop backend (Tauri 2).
 
+#[cfg(test)]
+mod bindings;
 mod installed;
 mod plan;
 mod review;
