@@ -114,4 +114,18 @@ describe("installed screen", () => {
     expect(alert).toHaveTextContent("The package database could not be read");
     expect(alert).toHaveTextContent("/var/lib/pacman");
   });
+
+  it("warns about repository databases that were skipped", async () => {
+    const { mockBackend } = await import("../../api/mock");
+    const base = await mockBackend.installed();
+    mockBackend.installed = async () => ({
+      ...base,
+      warnings: ["invalid database /var/lib/pacman/sync/broken.db: xz: truncated"],
+    });
+    renderApp("/installed");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("could not be read");
+    expect(alert).toHaveTextContent("broken.db");
+    expect(await rows()).toHaveLength(MOCK_INSTALLED.length);
+  });
 });

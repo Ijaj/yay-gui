@@ -57,6 +57,8 @@ export interface InstalledResponse {
   packages: InstalledPackage[];
   /** Set when the pacman database could not be read. */
   error?: string;
+  /** Sync databases that were skipped; their packages show as foreign. */
+  warnings?: string[];
 }
 
 // ---- Queue → review → run (plan.rs, review.rs, tx.rs) ----

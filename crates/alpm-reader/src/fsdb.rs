@@ -125,16 +125,27 @@ fn read_sync_archive(path: &Path) -> Result<Vec<String>, DbError> {
         path: path.to_path_buf(),
         source,
     };
-    let bytes = std::fs::read(path).map_err(io)?;
+    let invalid = |msg: String| DbError::Invalid {
+        path: path.to_path_buf(),
+        msg,
+    };
+    let mut bytes = std::fs::read(path).map_err(io)?;
+    // xz (EndeavourOS and other third-party repos): decode up front.
+    if bytes.starts_with(&[0xfd, b'7', b'z', b'X', b'Z', 0x00]) {
+        let mut out = Vec::new();
+        lzma_rs::xz_decompress(&mut bytes.as_slice(), &mut out)
+            .map_err(|e| invalid(format!("xz: {e}")))?;
+        bytes = out;
+    } else if bytes.starts_with(b"BZh") {
+        return Err(invalid(
+            "bzip2-compressed databases are not supported".into(),
+        ));
+    }
     let reader: Box<dyn Read + '_> = match bytes.as_slice() {
         [0x1f, 0x8b, ..] => Box::new(flate2::read::MultiGzDecoder::new(bytes.as_slice())),
         [0x28, 0xb5, 0x2f, 0xfd, ..] => Box::new(
-            ruzstd::decoding::StreamingDecoder::new(bytes.as_slice()).map_err(|e| {
-                DbError::Invalid {
-                    path: path.to_path_buf(),
-                    msg: e.to_string(),
-                }
-            })?,
+            ruzstd::decoding::StreamingDecoder::new(bytes.as_slice())
+                .map_err(|e| invalid(e.to_string()))?,
         ),
         // Uncompressed tar.
         _ => Box::new(bytes.as_slice()),
@@ -170,19 +181,31 @@ struct LocalEntry {
 pub struct FsDb {
     sync: Vec<RepoPackage>,
     local: Vec<LocalEntry>,
+    /// Sync databases that could not be read, with the reason.
+    skipped: Vec<String>,
 }
 
 impl FsDb {
     /// Load the local DB and all configured sync DBs. Sync DBs that do not
-    /// exist (repo never synced) are skipped.
+    /// exist (repo never synced) are skipped silently; ones that cannot be
+    /// read are skipped and reported by [`PackageDb::warnings`], so one bad
+    /// third-party repo does not hide everything else.
     pub fn open(config: &FsConfig) -> Result<Self, DbError> {
         let mut sync = Vec::new();
+        let mut skipped = Vec::new();
         for repo in &config.repos {
             let path = config.dbpath.join("sync").join(format!("{repo}.db"));
             if !path.exists() {
                 continue;
             }
-            let mut pkgs: Vec<_> = read_sync_archive(&path)?
+            let descs = match read_sync_archive(&path) {
+                Ok(d) => d,
+                Err(e) => {
+                    skipped.push(e.to_string());
+                    continue;
+                }
+            };
+            let mut pkgs: Vec<_> = descs
                 .iter()
                 .filter_map(|t| repo_package(&parse_desc(t), repo))
                 .collect();
@@ -190,7 +213,11 @@ impl FsDb {
             sync.extend(pkgs);
         }
         let local = Self::read_local(&config.dbpath.join("local"), &sync)?;
-        Ok(Self { sync, local })
+        Ok(Self {
+            sync,
+            local,
+            skipped,
+        })
     }
 
     fn read_local(dir: &Path, sync: &[RepoPackage]) -> Result<Vec<LocalEntry>, DbError> {
@@ -338,6 +365,10 @@ impl PackageDb for FsDb {
             })
             .cloned()
             .collect()
+    }
+
+    fn warnings(&self) -> Vec<String> {
+        self.skipped.clone()
     }
 
     fn required_by(&self, name: &str) -> Vec<String> {

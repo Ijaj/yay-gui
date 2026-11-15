@@ -56,6 +56,7 @@
   "installed.refreshing": "Refreshing…",
   "installed.loading": "Reading the package database…",
   "installed.error.title": "The package database could not be read",
+  "installed.skippedRepos": "Some repository databases could not be read, so their packages are shown as AUR / local:",
   "installed.empty.title": "No packages match",
   "installed.empty.desc": "Try another filter or search term.",
   "installed.noOrphans": "No orphans. Every dependency is still needed.",

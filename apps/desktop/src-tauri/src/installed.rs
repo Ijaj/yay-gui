@@ -58,11 +58,15 @@ pub struct InstalledResponse {
     /// Set when the pacman database could not be read.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Sync databases that were skipped (their packages look foreign).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
 }
 
 pub fn installed_response(db: Result<SharedDb, String>) -> InstalledResponse {
     match db {
         Ok(db) => InstalledResponse {
+            warnings: db.warnings(),
             packages: db
                 .installed(InstalledFilter::All)
                 .into_iter()
@@ -73,6 +77,7 @@ pub fn installed_response(db: Result<SharedDb, String>) -> InstalledResponse {
         Err(e) => InstalledResponse {
             packages: Vec::new(),
             error: Some(e),
+            warnings: Vec::new(),
         },
     }
 }
@@ -142,8 +147,13 @@ impl DbCache {
         let db = FsDb::open(&self.config)
             .map(|db| Arc::new(db) as SharedDb)
             .map_err(|e| format!("the pacman database could not be read: {e}"));
-        if let Err(e) = &db {
-            eprintln!("yaygui: {e}");
+        match &db {
+            Ok(db) => {
+                for w in db.warnings() {
+                    eprintln!("yaygui: skipped a sync database: {w}");
+                }
+            }
+            Err(e) => eprintln!("yaygui: {e}"),
         }
         *cached = Some((stamp, db.clone()));
         db

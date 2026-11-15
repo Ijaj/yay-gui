@@ -332,6 +332,16 @@ export function InstalledScreen() {
         </label>
       </div>
 
+      {!dbError && data?.warnings && data.warnings.length > 0 && (
+        <div role="alert" className="rounded-ui-sm bg-warning-bg px-3 py-2 text-warning">
+          <p className="m-0">{t("installed.skippedRepos")}</p>
+          <ul className="m-0 mt-1 pl-5 text-sm">
+            {data.warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {filter === "orphans" && data && !dbError && <OrphansBanner count={counts.orphans} />}
       {body}
     </section>

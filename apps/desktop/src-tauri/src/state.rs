@@ -116,8 +116,8 @@ impl AppState {
         tauri::async_runtime::spawn_blocking(move || installed_response(db))
             .await
             .unwrap_or_else(|e| InstalledResponse {
-                packages: Vec::new(),
                 error: Some(format!("internal error: {e}")),
+                ..Default::default()
             })
     }
 
