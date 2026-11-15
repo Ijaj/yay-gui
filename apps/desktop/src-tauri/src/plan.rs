@@ -384,6 +384,31 @@ mod tests {
 
     const C1: &str = "1111111111111111111111111111111111111111";
 
+    /// `QueueItemDto.source` is presented to TypeScript as `search::PackageSource`.
+    #[test]
+    fn source_dto_accepts_what_package_source_serializes() {
+        use crate::search::PackageSource;
+        let repo = serde_json::to_value(PackageSource::Repo {
+            repo: "extra".into(),
+        })
+        .unwrap();
+        assert_eq!(repo, json!({"kind": "repo", "repo": "extra"}));
+        let aur = serde_json::to_value(PackageSource::Aur).unwrap();
+        assert_eq!(aur, json!({"kind": "aur"}));
+        // Exhaustive matches: a new variant on either type stops this compiling.
+        match serde_json::from_value::<SourceDto>(repo).unwrap() {
+            SourceDto::Repo { repo } => assert_eq!(repo, "extra"),
+            SourceDto::Aur => panic!("wrong variant"),
+        }
+        match serde_json::from_value::<SourceDto>(aur).unwrap() {
+            SourceDto::Aur => {}
+            SourceDto::Repo { .. } => panic!("wrong variant"),
+        }
+        let _covers_both = |s: PackageSource| match s {
+            PackageSource::Repo { .. } | PackageSource::Aur => {}
+        };
+    }
+
     fn aur_pkg(name: &str, base: &str, depends: &[&str], modified: i64) -> AurPackage {
         serde_json::from_value(json!({
             "Name": name, "PackageBase": base, "Version": "1-1",

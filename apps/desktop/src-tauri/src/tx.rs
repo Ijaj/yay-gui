@@ -240,6 +240,57 @@ mod tests {
     use aurdeck_yay_runner::ExitStatus;
     use serde_json::json;
 
+    /// `TxRecord.commands` is presented to TypeScript as `PlannedCommand` (`CommandDto`).
+    #[test]
+    fn command_record_serializes_like_command_dto() {
+        let dto = CommandDto {
+            description: "d".into(),
+            argv: vec!["a".into(), "b".into()],
+        };
+        let rec = CommandRecord::from(&dto);
+        assert_eq!(
+            serde_json::to_value(&rec).unwrap(),
+            serde_json::to_value(&dto).unwrap()
+        );
+        // Both must be exactly the two keys the generated PlannedCommand type declares.
+        let keys: Vec<_> = serde_json::to_value(&rec)
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(keys, ["argv", "description"]);
+    }
+
+    #[test]
+    fn prompt_error_kind_wire_strings() {
+        let cases = [
+            (PromptErrorKind::DbLock, "db_lock"),
+            (PromptErrorKind::TargetNotFound, "target_not_found"),
+            (PromptErrorKind::CommitFailed, "commit_failed"),
+            (PromptErrorKind::ConflictingFiles, "conflicting_files"),
+            (PromptErrorKind::BuildFailed, "build_failed"),
+            (PromptErrorKind::AuthFailed, "auth_failed"),
+        ];
+        for (kind, wire) in cases {
+            assert_eq!(serde_json::to_value(kind).unwrap(), json!(wire));
+        }
+        // Every runner ErrorKind maps to a distinct variant.
+        let mapped = [
+            ErrorKind::DbLock,
+            ErrorKind::TargetNotFound,
+            ErrorKind::CommitFailed,
+            ErrorKind::ConflictingFiles,
+            ErrorKind::BuildFailed,
+            ErrorKind::AuthFailed,
+        ]
+        .map(|k| serde_json::to_value(error_kind(k)).unwrap());
+        for (i, a) in mapped.iter().enumerate() {
+            assert_eq!(a, &json!(cases[i].1));
+        }
+    }
+
     #[test]
     fn utf8_split_across_chunks() {
         let mut d = Utf8Decoder::default();
