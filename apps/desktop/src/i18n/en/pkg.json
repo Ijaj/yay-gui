@@ -1,0 +1,22 @@
+{
+  "pkg.installed": "Installed",
+  "pkg.installedVersion": "Installed {version}",
+  "pkg.votes": "{count} votes",
+  "pkg.popularity": "Popularity {value}",
+  "pkg.outOfDate": "Out of date",
+  "pkg.orphaned": "Orphaned",
+  "pkg.addToQueue": "Add to queue",
+  "pkg.inQueue": "In queue",
+  "pkg.removeFromQueue": "Remove from queue",
+  "pkg.back": "Back to search",
+  "pkg.notFound": "This package is not in the current results.",
+  "pkg.field.name": "Name",
+  "pkg.field.version": "Version",
+  "pkg.field.source": "Source",
+  "pkg.field.description": "Description",
+  "pkg.field.maintainer": "Maintainer",
+  "pkg.field.lastModified": "Last modified",
+  "pkg.field.outOfDate": "Flagged out of date",
+  "pkg.tabs.coming": "Dependencies, files, PKGBUILD, comments and risk signals are coming here.",
+  "pkg.source.aur": "AUR"
+}
