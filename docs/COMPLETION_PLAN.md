@@ -241,7 +241,7 @@ Phases B and C can overlap once A is merged, because their packages touch differ
 
 Progress is tracked by ticking the IDs below in the PR that completes each one.
 
-- [x] P0.1 · [x] P0.6 · [ ] P0.2 · [ ] P0.3 · [ ] P0.4 · [ ] P0.5
+- [x] P0.1 · [x] P0.6 · [ ] P0.2 · [x] P0.3 · [ ] P0.4 · [ ] P0.5
 - [ ] A1 · [ ] A2 · [ ] A3 · [ ] A4 · [ ] A5 · [ ] A6 · [ ] A7
 - [ ] B1 · [ ] B2 · [ ] B3 · [ ] B4 · [ ] B5 · [ ] B6
 - [ ] C1 · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 · [ ] C6 · [ ] C7 · [ ] C8 · [ ] C9

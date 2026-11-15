@@ -17,6 +17,7 @@ impl From<&ReviewStatus> for ReviewState {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ReviewBundle {
     pub name: String,
@@ -29,10 +30,12 @@ pub struct ReviewBundle {
     pub status: ReviewState,
     /// The latest earlier approval, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub previous: Option<Approval>,
     /// Unified diff from `previous.commit` to `commit`; `None` when there is
     /// no earlier approval, it is the same commit, or the old commit is gone.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub diff: Option<String>,
     pub maintainer: Option<String>,
     pub submitter: Option<String>,

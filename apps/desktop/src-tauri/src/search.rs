@@ -10,6 +10,7 @@ use serde::Serialize;
 pub const MAX_RESULTS: usize = 500;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum PackageSource {
     Repo { repo: String },
@@ -17,6 +18,7 @@ pub enum PackageSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct PackageSummary {
     pub name: String,
@@ -25,27 +27,35 @@ pub struct PackageSummary {
     pub source: PackageSource,
     pub installed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub installed_version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub votes: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub popularity: Option<f64>,
     /// Outer `None` omits the field (repo packages); `Some(None)` is JSON null.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(type = "number | null", optional))]
     pub out_of_date: Option<Option<i64>>,
     /// Outer `None` omits the field (repo packages); `Some(None)` is JSON null (orphan).
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(type = "string | null", optional))]
     pub maintainer: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub last_modified: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResponse {
     pub repo: Vec<PackageSummary>,
     pub aur: Vec<PackageSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(test, ts(optional))]
     pub aur_error: Option<String>,
 }
 

@@ -4,7 +4,7 @@
     "enabled": false
   },
   "files": {
-    "includes": ["**", "!dist", "!node_modules", "!src-tauri"]
+    "includes": ["**", "!dist", "!node_modules", "!src-tauri", "!src/api/generated"]
   },
   "formatter": {
     "indentStyle": "space",

@@ -32,6 +32,7 @@ pub enum StoreError {
 
 /// One approval of a package base at a commit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Approval {
     /// Approved git commit.

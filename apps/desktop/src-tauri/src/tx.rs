@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use crate::plan::CommandDto;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(rename = "Prompt"))]
 #[serde(
     tag = "kind",
     rename_all = "snake_case",
@@ -26,19 +28,32 @@ pub enum PromptDto {
         text: String,
     },
     Error {
-        error_kind: &'static str,
+        error_kind: PromptErrorKind,
         line: String,
     },
 }
 
-fn error_kind(k: ErrorKind) -> &'static str {
+/// Wire form of [`ErrorKind`]; serializes to the same snake_case strings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum PromptErrorKind {
+    DbLock,
+    TargetNotFound,
+    CommitFailed,
+    ConflictingFiles,
+    BuildFailed,
+    AuthFailed,
+}
+
+fn error_kind(k: ErrorKind) -> PromptErrorKind {
     match k {
-        ErrorKind::DbLock => "db_lock",
-        ErrorKind::TargetNotFound => "target_not_found",
-        ErrorKind::CommitFailed => "commit_failed",
-        ErrorKind::ConflictingFiles => "conflicting_files",
-        ErrorKind::BuildFailed => "build_failed",
-        ErrorKind::AuthFailed => "auth_failed",
+        ErrorKind::DbLock => PromptErrorKind::DbLock,
+        ErrorKind::TargetNotFound => PromptErrorKind::TargetNotFound,
+        ErrorKind::CommitFailed => PromptErrorKind::CommitFailed,
+        ErrorKind::ConflictingFiles => PromptErrorKind::ConflictingFiles,
+        ErrorKind::BuildFailed => PromptErrorKind::BuildFailed,
+        ErrorKind::AuthFailed => PromptErrorKind::AuthFailed,
     }
 }
 
@@ -63,6 +78,8 @@ impl From<PromptEvent> for PromptDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[cfg_attr(test, ts(rename = "TxEvent"))]
 #[serde(
     tag = "type",
     rename_all = "snake_case",
@@ -90,6 +107,7 @@ pub enum TxEventDto {
         index: usize,
         code: u32,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[cfg_attr(test, ts(optional))]
         signal: Option<String>,
     },
 }
@@ -169,9 +187,11 @@ pub fn to_dto(ev: TxEvent, decoder: &mut Utf8Decoder) -> Option<TxEventDto> {
 
 /// The last transaction, persisted so a crash mid-run is visible on the next launch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct TxRecord {
     pub state: TransactionState,
+    #[cfg_attr(test, ts(as = "Vec<CommandDto>"))]
     pub commands: Vec<CommandRecord>,
     pub started_at: i64,
     pub updated_at: i64,
@@ -219,6 +239,57 @@ mod tests {
     use super::*;
     use aurdeck_yay_runner::ExitStatus;
     use serde_json::json;
+
+    /// `TxRecord.commands` is presented to TypeScript as `PlannedCommand` (`CommandDto`).
+    #[test]
+    fn command_record_serializes_like_command_dto() {
+        let dto = CommandDto {
+            description: "d".into(),
+            argv: vec!["a".into(), "b".into()],
+        };
+        let rec = CommandRecord::from(&dto);
+        assert_eq!(
+            serde_json::to_value(&rec).unwrap(),
+            serde_json::to_value(&dto).unwrap()
+        );
+        // Both must be exactly the two keys the generated PlannedCommand type declares.
+        let keys: Vec<_> = serde_json::to_value(&rec)
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        assert_eq!(keys, ["argv", "description"]);
+    }
+
+    #[test]
+    fn prompt_error_kind_wire_strings() {
+        let cases = [
+            (PromptErrorKind::DbLock, "db_lock"),
+            (PromptErrorKind::TargetNotFound, "target_not_found"),
+            (PromptErrorKind::CommitFailed, "commit_failed"),
+            (PromptErrorKind::ConflictingFiles, "conflicting_files"),
+            (PromptErrorKind::BuildFailed, "build_failed"),
+            (PromptErrorKind::AuthFailed, "auth_failed"),
+        ];
+        for (kind, wire) in cases {
+            assert_eq!(serde_json::to_value(kind).unwrap(), json!(wire));
+        }
+        // Every runner ErrorKind maps to a distinct variant.
+        let mapped = [
+            ErrorKind::DbLock,
+            ErrorKind::TargetNotFound,
+            ErrorKind::CommitFailed,
+            ErrorKind::ConflictingFiles,
+            ErrorKind::BuildFailed,
+            ErrorKind::AuthFailed,
+        ]
+        .map(|k| serde_json::to_value(error_kind(k)).unwrap());
+        for (i, a) in mapped.iter().enumerate() {
+            assert_eq!(a, &json!(cases[i].1));
+        }
+    }
 
     #[test]
     fn utf8_split_across_chunks() {

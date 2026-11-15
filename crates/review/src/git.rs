@@ -44,6 +44,7 @@ pub enum ReviewError {
 
 /// One file of the package repository at the fetched commit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct RepoFile {
     /// Path inside the repository.
