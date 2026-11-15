@@ -123,7 +123,7 @@ P0.1 runs first, then P0.6 on its own. After that P0.2 and P0.3 can run together
 | A4 | Installed: bulk select and bulk removal, links to detail | S | Std | A2 |
 | A5 | Interrupted-transaction notice at launch, on any screen (today it only appears when the Transaction screen is opened) | S | Std | — |
 | A6 | Container scenarios for the whole queue → review → run flow, including a wrong password and a declined prompt | M | Safe, arch | P0.5 |
-| A7 | `packaging/aur/aurdeck-git/PKGBUILD`, `.desktop` file, icons; README install section | S | Safe | P0.6; name confirmed free on the AUR (section 6) |
+| A7 | `packaging/aur/aurdeck-git/PKGBUILD`, `.desktop` file, icons; README install section | S | Safe | P0.6 |
 
 Wave 1: A1 + A3 + A5. Wave 2: A2 + A6 + A7. Wave 3: A4.
 
@@ -208,7 +208,6 @@ Phases B and C can overlap once A is merged, because their packages touch differ
 
 | When | Decision or action |
 | --- | --- |
-| Before A7 | Confirm `aurdeck`, `aurdeck-bin` and `aurdeck-git` are free on the AUR, and the name on GitHub. Only crates.io was checked (free); the AUR was not reachable from the agent's network |
 | After P0.5 | Contact the yay maintainer about the project and the hook use (PLAN.md), especially if a hook field is missing |
 | Phase B exit | Use the app for the weekly upgrade for a month |
 | D4 | Review the Bengali translation |
@@ -219,7 +218,7 @@ Phases B and C can overlap once A is merged, because their packages touch differ
 
 | Question | Decision |
 | --- | --- |
-| Final name | **`aurdeck`**, all lower case, everywhere including the UI (P0.6) |
+| Final name | **`aurdeck`**, all lower case, everywhere including the UI (P0.6). Free on crates.io and the AUR (owner checked the AUR on Nov 15, 2026) |
 | Where the Arch tests run | Docker inside the agent's container first; fall back to GitHub Actions only if Docker cannot be started, and tell the owner when that happens |
 | Who merges | The orchestrator merges standard-tier PRs after checks and review pass. Safety-tier PRs always wait for the owner |
 
