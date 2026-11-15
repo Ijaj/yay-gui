@@ -6,10 +6,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
-use serde::Serialize;
-use yaygui_alpm_reader::{
+use aurdeck_alpm_reader::{
     FsConfig, FsDb, InstalledFilter, LocalPackage, PackageDb, Reason, repos_from_pacman_conf,
 };
+use serde::Serialize;
 
 pub type SharedDb = Arc<dyn PackageDb + Send + Sync>;
 
@@ -150,10 +150,10 @@ impl DbCache {
         match &db {
             Ok(db) => {
                 for w in db.warnings() {
-                    eprintln!("yaygui: skipped a sync database: {w}");
+                    eprintln!("aurdeck: skipped a sync database: {w}");
                 }
             }
-            Err(e) => eprintln!("yaygui: {e}"),
+            Err(e) => eprintln!("aurdeck: {e}"),
         }
         *cached = Some((stamp, db.clone()));
         db

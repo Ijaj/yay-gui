@@ -6,14 +6,14 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::ipc::Channel;
-use yaygui_alpm_reader::FsConfig;
-use yaygui_aur_client::{AurClient, AurConfig, Package as AurPackage, SearchBy};
-use yaygui_core::{PackageName, TransactionState};
-use yaygui_review::{AurGit, ReviewStore, review_status};
-use yaygui_yay_runner::{
+use aurdeck_alpm_reader::FsConfig;
+use aurdeck_aur_client::{AurClient, AurConfig, Package as AurPackage, SearchBy};
+use aurdeck_core::{PackageName, TransactionState};
+use aurdeck_review::{AurGit, ReviewStore, review_status};
+use aurdeck_yay_runner::{
     Overlay, TxConfig, TxEvent, TxHandle, pacman_lock_held, start_transaction,
 };
+use tauri::ipc::Channel;
 use zeroize::Zeroizing;
 
 use crate::installed::{
@@ -61,26 +61,26 @@ pub struct AppState {
     starting: tokio::sync::Mutex<()>,
     config_dir: PathBuf,
     record_path: PathBuf,
-    /// Debug builds only: run this instead of `yay` (`YAYGUI_YAY`).
+    /// Debug builds only: run this instead of `yay` (`AURDECK_YAY`).
     yay_override: Option<String>,
 }
 
 impl AppState {
-    pub fn new() -> Result<Self, yaygui_aur_client::Error> {
+    pub fn new() -> Result<Self, aurdeck_aur_client::Error> {
         let aur = AurClient::new(AurConfig::default())?;
         let pacman_conf = std::fs::read_to_string("/etc/pacman.conf").ok();
         let db = Arc::new(DbCache::new(FsConfig {
             repos: repos_or_default(pacman_conf.as_deref()),
             ..FsConfig::default()
         }));
-        let data_dir = xdg_dir("XDG_DATA_HOME", ".local/share").join("yaygui");
-        let cache_dir = xdg_dir("XDG_CACHE_HOME", ".cache").join("yaygui");
+        let data_dir = xdg_dir("XDG_DATA_HOME", ".local/share").join("aurdeck");
+        let cache_dir = xdg_dir("XDG_CACHE_HOME", ".cache").join("aurdeck");
         let store = ReviewStore::open(data_dir.join("reviews.json")).map_err(|e| e.to_string());
         if let Err(e) = &store {
-            eprintln!("yaygui: {e}; reviews cannot be recorded until it is fixed");
+            eprintln!("aurdeck: {e}; reviews cannot be recorded until it is fixed");
         }
         let yay_override = if cfg!(debug_assertions) {
-            std::env::var("YAYGUI_YAY").ok()
+            std::env::var("AURDECK_YAY").ok()
         } else {
             None
         };
@@ -205,7 +205,7 @@ impl AppState {
     async fn resolve_aur(
         &self,
         db: Option<&SharedDb>,
-        queue: &[yaygui_core::QueueItem],
+        queue: &[aurdeck_core::QueueItem],
         repo_names: &[String],
     ) -> Result<(HashMap<String, AurPackage>, HashMap<String, String>), PlanErrorDto> {
         let queued: HashSet<String> = plan::installs(queue, true).into_iter().collect();
@@ -393,7 +393,7 @@ impl AppState {
                 record.state = s.clone();
                 record.updated_at = now();
                 if let Err(e) = tx::save_record(&record_path, &record) {
-                    eprintln!("yaygui: could not save transaction record: {e}");
+                    eprintln!("aurdeck: could not save transaction record: {e}");
                 }
             }
             if let Some(dto) = tx::to_dto(ev, &mut decoder) {

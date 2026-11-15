@@ -8,8 +8,8 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use aurdeck_core::PackageName;
 use serde::Serialize;
-use yaygui_core::PackageName;
 
 /// Default AUR host.
 pub const AUR_BASE_URL: &str = "https://aur.archlinux.org";

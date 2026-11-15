@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        YayGUI puts safety first. Proposals that weaken the safety rules (no root, no partial upgrades, mandatory AUR review, no shell strings) are unlikely to be accepted. See the README's safety principles.
+        aurdeck puts safety first. Proposals that weaken the safety rules (no root, no partial upgrades, mandatory AUR review, no shell strings) are unlikely to be accepted. See the README's safety principles.
   - type: textarea
     id: problem
     attributes:

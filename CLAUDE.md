@@ -4,7 +4,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 
 ## What this is
 
-- YayGUI (working name, renamed to "aurdeck" later; keep `YayGUI`/`yaygui` in code for now): pre-alpha unofficial GUI for the yay AUR helper on Arch Linux.
+- aurdeck: pre-alpha unofficial GUI for the yay AUR helper on Arch Linux.
 - Tauri 2 desktop app: Rust backend, React + TypeScript UI. Reads come from libalpm and the AUR RPC; every change goes through yay in a PTY.
 
 ## Layout
@@ -28,7 +28,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - Tauri crate: building it needs the WebKitGTK 4.1 dev packages (Arch: `webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel`; Debian/Ubuntu list is in README).
 - Tauri crate: its build script expects `apps/desktop/dist` to exist. Run `mkdir -p apps/desktop/dist` or `pnpm build` first.
 - `scripts/check.sh deny` needs `cargo-deny`, which may not be installed. If `command -v cargo-deny` fails, do not install it silently. Check new dependency licences by hand against `deny.toml` and say so in your report.
-- Debug builds run the program named in `YAYGUI_YAY` instead of `yay`. Use `crates/yay-runner/tests/fixtures/fake-tx.sh` for run-flow tests.
+- Debug builds run the program named in `AURDECK_YAY` instead of `yay`. Use `crates/yay-runner/tests/fixtures/fake-tx.sh` for run-flow tests.
 
 ## Conventions
 

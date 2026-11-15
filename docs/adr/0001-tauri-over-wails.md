@@ -6,7 +6,7 @@
 
 ## Context and problem statement
 
-YayGUI needs a desktop shell with a modern web-based UI and a backend that talks to libalpm, the AUR, a pseudo-terminal and D-Bus. The choice is between Tauri 2 (Rust backend) and Wails (Go backend). Native toolkits (GTK 4, Qt 6) and Electron were also considered and rejected for reasons below.
+aurdeck needs a desktop shell with a modern web-based UI and a backend that talks to libalpm, the AUR, a pseudo-terminal and D-Bus. The choice is between Tauri 2 (Rust backend) and Wails (Go backend). Native toolkits (GTK 4, Qt 6) and Electron were also considered and rejected for reasons below.
 
 ## Decision drivers
 

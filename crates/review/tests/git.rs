@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use yaygui_review::{AurGit, ReviewError};
+use aurdeck_review::{AurGit, ReviewError};
 
 fn git(dir: &Path, args: &[&str]) -> String {
     let out = Command::new("git")
@@ -45,7 +45,7 @@ fn make_pkg(root: &Path, name: &str, pkgbuild: &str) -> std::path::PathBuf {
     dir
 }
 
-fn name(s: &str) -> yaygui_core::PackageName {
+fn name(s: &str) -> aurdeck_core::PackageName {
     s.parse().unwrap()
 }
 

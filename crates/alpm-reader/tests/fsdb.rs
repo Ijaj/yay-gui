@@ -1,6 +1,6 @@
+use aurdeck_alpm_reader::*;
 use std::io::Write;
 use std::path::Path;
-use yaygui_alpm_reader::*;
 
 fn write_local(dbpath: &Path, name: &str, ver: &str, extra: &str) {
     let d = dbpath.join("local").join(format!("{name}-{ver}"));

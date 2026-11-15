@@ -1,4 +1,4 @@
-//! YayGUI desktop backend (Tauri 2).
+//! aurdeck desktop backend (Tauri 2).
 
 mod installed;
 mod plan;
@@ -7,13 +7,13 @@ mod search;
 mod state;
 mod tx;
 
+use aurdeck_core::ensure_not_root;
 use state::AppState;
 use tauri::ipc::Channel;
-use yaygui_core::ensure_not_root;
 use zeroize::Zeroizing;
 
 /// Refuse to run with root privileges (real or effective uid).
-fn check_not_root() -> Result<(), yaygui_core::SafetyError> {
+fn check_not_root() -> Result<(), aurdeck_core::SafetyError> {
     ensure_not_root(rustix::process::getuid().as_raw())?;
     ensure_not_root(rustix::process::geteuid().as_raw())
 }
@@ -106,14 +106,14 @@ fn last_transaction(state: tauri::State<'_, AppState>) -> Option<tx::TxRecord> {
 
 pub fn run() {
     if let Err(e) = check_not_root() {
-        eprintln!("yaygui: refusing to start: {e}");
+        eprintln!("aurdeck: refusing to start: {e}");
         std::process::exit(1);
     }
 
     let state = match AppState::new() {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("yaygui: failed to initialise: {e}");
+            eprintln!("aurdeck: failed to initialise: {e}");
             std::process::exit(1);
         }
     };
@@ -136,7 +136,7 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
     {
-        eprintln!("yaygui: error while running application: {e}");
+        eprintln!("aurdeck: error while running application: {e}");
         std::process::exit(1);
     }
 }

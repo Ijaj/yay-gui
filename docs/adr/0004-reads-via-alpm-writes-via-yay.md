@@ -6,7 +6,7 @@
 
 ## Context and problem statement
 
-YayGUI must show package data quickly and perform installs, upgrades and removals. yay's human-readable output changes between releases and is hard to parse reliably. Re-implementing dependency solving or AUR building would duplicate yay and risk new bugs.
+aurdeck must show package data quickly and perform installs, upgrades and removals. yay's human-readable output changes between releases and is hard to parse reliably. Re-implementing dependency solving or AUR building would duplicate yay and risk new bugs.
 
 ## Decision drivers
 

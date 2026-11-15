@@ -1,6 +1,6 @@
-# Contributing to YayGUI
+# Contributing to aurdeck
 
-Thanks for helping. YayGUI is pre-alpha, so the best contributions right now are small, well-tested changes, bug reports with logs, and translations once the catalogs exist.
+Thanks for helping. aurdeck is pre-alpha, so the best contributions right now are small, well-tested changes, bug reports with logs, and translations once the catalogs exist.
 
 ## Ground rules
 
@@ -45,7 +45,7 @@ Never run code that installs, upgrades or removes packages on your everyday syst
 docker run -it --rm -v "$PWD":/work -w /work archlinux:base-devel bash
 ```
 
-Inside the container, create a non-root user. `makepkg` refuses to run as root, and YayGUI must never run as root either:
+Inside the container, create a non-root user. `makepkg` refuses to run as root, and aurdeck must never run as root either:
 
 ```sh
 pacman -Syu --noconfirm sudo git

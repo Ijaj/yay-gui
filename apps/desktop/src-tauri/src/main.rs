@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    yaygui_desktop_lib::run();
+    aurdeck_lib::run();
 }

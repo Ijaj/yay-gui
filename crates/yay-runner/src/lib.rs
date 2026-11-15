@@ -1,4 +1,4 @@
-//! `yaygui-yay-runner`: runs yay (or any program) in a real PTY, forwards the
+//! `aurdeck-yay-runner`: runs yay (or any program) in a real PTY, forwards the
 //! raw byte stream unchanged, and recognises interactive prompts and common
 //! failures so the UI can show native dialogs.
 //!

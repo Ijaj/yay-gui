@@ -1,16 +1,16 @@
-# YayGUI
+# aurdeck
 
 **An unofficial GUI for [yay](https://github.com/Jguer/yay), the AUR helper for Arch Linux.**
 
 > A friendly face for yay — every command visible, every PKGBUILD reviewable, nothing built as root.
 
-YayGUI is a planned modern desktop app for search, install, update, remove and review of packages from the Arch repositories and the AUR. It is built on Tauri 2 (React and TypeScript UI, Rust backend) and is not affiliated with the yay project. "YayGUI" is a working name and will change before the first public release.
+aurdeck is a planned modern desktop app for search, install, update, remove and review of packages from the Arch repositories and the AUR. It is built on Tauri 2 (React and TypeScript UI, Rust backend) and is not affiliated with the yay project. "aurdeck" is a working name and will change before the first public release.
 
 ## Status
 
 **Pre-alpha.** The repository currently contains early spikes and crates only. There is no usable release yet.
 
-No AUR package exists yet. The planned `yaygui`, `yaygui-bin` and `yaygui-git` packages are not published, so `yay -S yaygui-bin` does not work.
+No AUR package exists yet. The planned `aurdeck`, `aurdeck-bin` and `aurdeck-git` packages are not published, so `yay -S aurdeck-bin` does not work.
 
 ## Safety principles
 
@@ -75,7 +75,7 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
 sudo pacman -S --needed webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel
 ```
 
-Debug builds run the program named in `YAYGUI_YAY` instead of `yay`, so the run flow can be tried against a fake script (for example `crates/yay-runner/tests/fixtures/fake-tx.sh`). Release builds ignore it.
+Debug builds run the program named in `AURDECK_YAY` instead of `yay`, so the run flow can be tried against a fake script (for example `crates/yay-runner/tests/fixtures/fake-tx.sh`). Release builds ignore it.
 
 `cargo build --workspace` also compiles the Tauri crate, which expects `apps/desktop/dist` to exist (run `pnpm build` or `mkdir -p apps/desktop/dist`).
 

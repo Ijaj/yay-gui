@@ -1,12 +1,12 @@
 //! Runs a planned transaction: one yay command after another in a PTY, with
-//! the state machine from `yaygui-core` and a single event stream for the UI.
+//! the state machine from `aurdeck-core` and a single event stream for the UI.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use yaygui_core::{PlannedCommand, TransactionEvent, TransactionState};
+use aurdeck_core::{PlannedCommand, TransactionEvent, TransactionState};
 use zeroize::Zeroizing;
 
 use crate::{ExitStatus, PromptDetector, PromptEvent, RunError, RunHandle, RunSpec, Runner};

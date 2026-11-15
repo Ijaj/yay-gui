@@ -1,4 +1,4 @@
-//! PTY spike: `cargo run -p yaygui-yay-runner --example spike -- yay -S somepkg`
+//! PTY spike: `cargo run -p aurdeck-yay-runner --example spike -- yay -S somepkg`
 //!
 //! Runs the command in a PTY, mirrors its output to stdout, asks for the sudo
 //! password on the terminal (no echo) when prompted, and forwards other
@@ -7,7 +7,7 @@
 use std::io::{BufRead, Write};
 use std::sync::mpsc;
 
-use yaygui_yay_runner::{PromptDetector, PromptEvent, RunSpec, Runner};
+use aurdeck_yay_runner::{PromptDetector, PromptEvent, RunSpec, Runner};
 use zeroize::Zeroizing;
 
 fn main() {
