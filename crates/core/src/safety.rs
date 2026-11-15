@@ -4,7 +4,7 @@
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SafetyError {
     /// The app was started as root (UID 0).
-    #[error("YayGUI must not run as root; start it as a regular user")]
+    #[error("aurdeck must not run as root; start it as a regular user")]
     RunningAsRoot,
 }
 

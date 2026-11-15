@@ -1,6 +1,6 @@
 # Architecture decision records
 
-This folder records significant architecture decisions for YayGUI, in a lightweight [MADR](https://adr.github.io/madr/)-style format. Each ADR explains the context, the decision and its consequences, so newcomers can see why the project is shaped the way it is.
+This folder records significant architecture decisions for aurdeck, in a lightweight [MADR](https://adr.github.io/madr/)-style format. Each ADR explains the context, the decision and its consequences, so newcomers can see why the project is shaped the way it is.
 
 Start from [0000-template.md](0000-template.md) for a new record. Number records sequentially and never reuse a number. To change a decision, write a new ADR that supersedes the old one and update the old status.
 

@@ -15,13 +15,13 @@ Maintainers will acknowledge reports as soon as they can, keep you informed whil
 
 ## Supported versions
 
-YayGUI is pre-alpha. Only the latest commit on `main` receives security fixes until the first tagged release.
+aurdeck is pre-alpha. Only the latest commit on `main` receives security fixes until the first tagged release.
 
 ## Scope
 
 In scope, for this project's own code:
 
-- running as root, or any path that makes YayGUI or yay build or install as root
+- running as root, or any path that makes aurdeck or yay build or install as root
 - partial upgrades, or any path that installs repository packages without a full `-Syu`
 - bypassing the PKGBUILD or diff review, including building an AUR package that differs from the approved version
 - shell injection, or any command built from untrusted strings
@@ -31,7 +31,7 @@ In scope, for this project's own code:
 Out of scope:
 
 - malicious or vulnerable content inside AUR packages themselves. Report those to the Arch Linux security team and the package maintainer.
-- vulnerabilities in yay, pacman, libalpm, makepkg or WebKitGTK. Report those upstream. We are happy to be told about them if they affect YayGUI's design.
+- vulnerabilities in yay, pacman, libalpm, makepkg or WebKitGTK. Report those upstream. We are happy to be told about them if they affect aurdeck's design.
 - issues that need an attacker who already has root on the machine.
 
 ## Supply chain

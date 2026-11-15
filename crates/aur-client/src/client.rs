@@ -73,7 +73,7 @@ impl SearchBy {
 pub struct AurConfig {
     /// Base URL without trailing path (default `https://aur.archlinux.org`).
     pub base_url: String,
-    /// `User-Agent` header (default `yaygui/<version>`).
+    /// `User-Agent` header (default `aurdeck/<version>`).
     pub user_agent: String,
     /// Per-request timeout (default 15 s).
     pub timeout: Duration,
@@ -89,7 +89,7 @@ impl Default for AurConfig {
     fn default() -> Self {
         Self {
             base_url: "https://aur.archlinux.org".to_owned(),
-            user_agent: concat!("yaygui/", env!("CARGO_PKG_VERSION")).to_owned(),
+            user_agent: concat!("aurdeck/", env!("CARGO_PKG_VERSION")).to_owned(),
             timeout: Duration::from_secs(15),
             cache_ttl: Duration::from_secs(300),
             min_request_interval: Duration::from_secs(1),

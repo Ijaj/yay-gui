@@ -2,9 +2,9 @@
 
 use std::path::Path;
 
+use aurdeck_core::TransactionState;
+use aurdeck_yay_runner::{ErrorKind, PromptEvent, TxEvent};
 use serde::{Deserialize, Serialize};
-use yaygui_core::TransactionState;
-use yaygui_yay_runner::{ErrorKind, PromptEvent, TxEvent};
 
 use crate::plan::CommandDto;
 
@@ -217,8 +217,8 @@ pub fn load_record(path: &Path, running: bool) -> Option<TxRecord> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use aurdeck_yay_runner::ExitStatus;
     use serde_json::json;
-    use yaygui_yay_runner::ExitStatus;
 
     #[test]
     fn utf8_split_across_chunks() {

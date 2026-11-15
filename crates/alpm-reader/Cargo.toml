@@ -1,6 +1,6 @@
 [package]
-name = "yaygui-alpm-reader"
-description = "Read-only pacman/libalpm package database queries for YayGUI"
+name = "aurdeck-alpm-reader"
+description = "Read-only pacman/libalpm package database queries for aurdeck"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

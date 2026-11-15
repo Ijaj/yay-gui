@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
+use aurdeck_core::ReviewStatus;
 use serde::{Deserialize, Serialize};
-use yaygui_core::ReviewStatus;
 
 use crate::git::is_commit_hash;
 

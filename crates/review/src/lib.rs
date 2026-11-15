@@ -1,4 +1,4 @@
-//! `yaygui-review`: everything needed to review an AUR package before it is
+//! `aurdeck-review`: everything needed to review an AUR package before it is
 //! built.
 //!
 //! - [`AurGit`] clones or updates an AUR package's git repository into a
@@ -7,7 +7,7 @@
 //! - [`ReviewStore`] is the persistent review history (pkgbase → approved
 //!   commits), stored as JSON in the app's data directory.
 //! - [`review_status`] turns a stored approval plus what is known about the
-//!   package now into a [`yaygui_core::ReviewStatus`].
+//!   package now into a [`aurdeck_core::ReviewStatus`].
 
 mod git;
 mod store;

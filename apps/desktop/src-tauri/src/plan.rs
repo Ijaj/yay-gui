@@ -3,18 +3,18 @@
 //! The frontend sends its queue; the backend re-validates every name, checks
 //! that "repo" packages really are in the sync databases, works out which AUR
 //! packages (including AUR dependencies) need a review and asks
-//! `yaygui_core::plan` for the commands. Serialization matches
+//! `aurdeck_core::plan` for the commands. Serialization matches
 //! `apps/desktop/src/api/types.ts`.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use serde::{Deserialize, Serialize};
-use yaygui_aur_client::Package as AurPackage;
-use yaygui_core::{
+use aurdeck_aur_client::Package as AurPackage;
+use aurdeck_core::{
     PackageName, PackageRef, PlanContext, PlanError, PlannedCommand, QueueItem, RemoveMode,
     ReviewMap, ReviewStatus, Source,
 };
-use yaygui_review::{Approval, review_status};
+use aurdeck_review::{Approval, review_status};
+use serde::{Deserialize, Serialize};
 
 /// Upper bound on AUR packages (queued plus dependencies) in one plan.
 pub const MAX_AUR_PACKAGES: usize = 100;
@@ -296,7 +296,7 @@ pub fn assemble(queue: &[QueueItem], facts: &Facts<'_>) -> PlanOutcome {
         skip_review_session_opt_in: facts.skip_review,
     };
     let mut error = core_plan_error(queue, &ctx);
-    let commands = match yaygui_core::plan(queue, &ctx) {
+    let commands = match aurdeck_core::plan(queue, &ctx) {
         Ok(c) => c,
         Err(e) => {
             error.get_or_insert(e.into());
@@ -352,7 +352,7 @@ fn core_plan_error(queue: &[QueueItem], ctx: &PlanContext) -> Option<PlanErrorDt
         skip_review_session_opt_in: true,
         ..ctx.clone()
     };
-    yaygui_core::plan(queue, &relaxed).err().map(Into::into)
+    aurdeck_core::plan(queue, &relaxed).err().map(Into::into)
 }
 
 #[cfg(test)]

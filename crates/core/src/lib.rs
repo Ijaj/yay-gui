@@ -1,4 +1,4 @@
-//! Domain types, transaction planner and safety rules for YayGUI.
+//! Domain types, transaction planner and safety rules for aurdeck.
 //!
 //! This crate is pure: no IO, no Tauri. It turns a queue of user actions into
 //! argument arrays for `yay`, enforcing the project's hard safety rules.

@@ -1,4 +1,4 @@
-//! Read-only pacman package database queries for YayGUI.
+//! Read-only pacman package database queries for aurdeck.
 //!
 //! Reads never go through `yay`. [`PackageDb`] is a backend-agnostic trait;
 //! [`FsDb`] implements it in pure Rust by parsing the on-disk pacman databases,

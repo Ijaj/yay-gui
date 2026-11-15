@@ -106,6 +106,86 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "aurdeck"
+version = "0.0.1"
+dependencies = [
+ "aurdeck-alpm-reader",
+ "aurdeck-aur-client",
+ "aurdeck-core",
+ "aurdeck-review",
+ "aurdeck-yay-runner",
+ "rustix",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tempfile",
+ "tokio",
+ "zeroize",
+]
+
+[[package]]
+name = "aurdeck-alpm-reader"
+version = "0.0.1"
+dependencies = [
+ "alpm",
+ "flate2",
+ "lzma-rs",
+ "regex",
+ "ruzstd",
+ "serde",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zstd",
+]
+
+[[package]]
+name = "aurdeck-aur-client"
+version = "0.0.1"
+dependencies = [
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
+name = "aurdeck-core"
+version = "0.0.1"
+dependencies = [
+ "proptest",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "aurdeck-review"
+version = "0.0.1"
+dependencies = [
+ "aurdeck-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "aurdeck-yay-runner"
+version = "0.0.1"
+dependencies = [
+ "aurdeck-core",
+ "portable-pty",
+ "rpassword",
+ "tempfile",
+ "thiserror 2.0.21",
+ "zeroize",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5235,86 +5315,6 @@ checksum = "963d6fab92d5504b971dc8bd90ca743c2575e590bc8071ea5bc571598667ae08"
 dependencies = [
  "libc",
  "rustix",
-]
-
-[[package]]
-name = "yaygui-alpm-reader"
-version = "0.0.1"
-dependencies = [
- "alpm",
- "flate2",
- "lzma-rs",
- "regex",
- "ruzstd",
- "serde",
- "tar",
- "tempfile",
- "thiserror 2.0.21",
- "zstd",
-]
-
-[[package]]
-name = "yaygui-aur-client"
-version = "0.0.1"
-dependencies = [
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "wiremock",
-]
-
-[[package]]
-name = "yaygui-core"
-version = "0.0.1"
-dependencies = [
- "proptest",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "yaygui-desktop"
-version = "0.0.1"
-dependencies = [
- "rustix",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tempfile",
- "tokio",
- "yaygui-alpm-reader",
- "yaygui-aur-client",
- "yaygui-core",
- "yaygui-review",
- "yaygui-yay-runner",
- "zeroize",
-]
-
-[[package]]
-name = "yaygui-review"
-version = "0.0.1"
-dependencies = [
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "yaygui-core",
-]
-
-[[package]]
-name = "yaygui-yay-runner"
-version = "0.0.1"
-dependencies = [
- "portable-pty",
- "rpassword",
- "tempfile",
- "thiserror 2.0.21",
- "yaygui-core",
- "zeroize",
 ]
 
 [[package]]

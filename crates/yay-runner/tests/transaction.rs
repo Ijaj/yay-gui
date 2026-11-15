@@ -3,8 +3,8 @@
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use yaygui_core::{PlannedCommand, TransactionState};
-use yaygui_yay_runner::{PromptEvent, TxConfig, TxEvent, start_transaction};
+use aurdeck_core::{PlannedCommand, TransactionState};
+use aurdeck_yay_runner::{PromptEvent, TxConfig, TxEvent, start_transaction};
 
 const T: Duration = Duration::from_secs(10);
 

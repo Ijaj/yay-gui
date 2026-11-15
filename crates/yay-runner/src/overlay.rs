@@ -55,7 +55,7 @@ impl Overlay {
             }
         }
         let dir = tempfile::Builder::new()
-            .prefix("yaygui-overlay-")
+            .prefix("aurdeck-overlay-")
             .tempdir()?;
         #[cfg(unix)]
         {

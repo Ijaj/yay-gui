@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "YayGUI",
+  "productName": "aurdeck",
   "version": "0.0.1",
-  "identifier": "io.github.yaygui.desktop",
+  "identifier": "io.github.ijaj.aurdeck",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "YayGUI",
+        "title": "aurdeck",
         "width": 1100,
         "height": 720,
         "minWidth": 720,

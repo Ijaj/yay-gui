@@ -41,7 +41,7 @@ jobs:
       # libalpm isn't on Ubuntu; alpm's docs-rs feature skips linking it and the
       # libalpm version check, so a breaking alpm bump still fails here.
       - name: Clippy, libalpm feature
-        run: cargo clippy -p yaygui-alpm-reader --features libalpm,alpm/docs-rs --all-targets -- -D warnings
+        run: cargo clippy -p aurdeck-alpm-reader --features libalpm,alpm/docs-rs --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
 

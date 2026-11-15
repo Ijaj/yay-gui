@@ -2,7 +2,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use yaygui_yay_runner::{PromptDetector, PromptEvent, RunHandle, RunSpec, Runner};
+use aurdeck_yay_runner::{PromptDetector, PromptEvent, RunHandle, RunSpec, Runner};
 use zeroize::Zeroizing;
 
 const T: Duration = Duration::from_secs(10);
@@ -77,7 +77,7 @@ fn wrong_password_detected() {
     assert!(matches!(
         rx.recv_timeout(T).unwrap(),
         PromptEvent::Error {
-            kind: yaygui_yay_runner::ErrorKind::AuthFailed,
+            kind: aurdeck_yay_runner::ErrorKind::AuthFailed,
             ..
         }
     ));

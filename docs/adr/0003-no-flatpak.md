@@ -6,7 +6,7 @@
 
 ## Context and problem statement
 
-Desktop apps are often shipped as sandboxed bundles. YayGUI, however, manages the host's package database, runs the host's pacman and yay, and needs the host's libalpm and pacman lock. The packaging format must suit that job.
+Desktop apps are often shipped as sandboxed bundles. aurdeck, however, manages the host's package database, runs the host's pacman and yay, and needs the host's libalpm and pacman lock. The packaging format must suit that job.
 
 ## Decision drivers
 
@@ -18,7 +18,7 @@ Desktop apps are often shipped as sandboxed bundles. YayGUI, however, manages th
 ## Considered options
 
 - **Flatpak, Snap or AppImage** with the sandbox partly disabled, or with host access punched through.
-- **AUR packages** (`yaygui`, `yaygui-bin`, `yaygui-git`), built natively against the host libraries.
+- **AUR packages** (`aurdeck`, `aurdeck-bin`, `aurdeck-git`), built natively against the host libraries.
 
 ## Decision outcome
 

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
+use aurdeck_aur_client::{AurClient, AurConfig, Error, SearchBy};
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
-use yaygui_aur_client::{AurClient, AurConfig, Error, SearchBy};
 
 const SEARCH: &str = include_str!("fixtures/search_response.json");
 const INFO: &str = include_str!("fixtures/info_response.json");

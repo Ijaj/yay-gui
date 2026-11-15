@@ -30,9 +30,9 @@ body:
     validations:
       required: true
   - type: input
-    id: yaygui-version
+    id: aurdeck-version
     attributes:
-      label: YayGUI version or commit
+      label: aurdeck version or commit
       placeholder: "0.0.1 or a commit hash"
     validations:
       required: true
@@ -68,5 +68,5 @@ body:
       options:
         - label: I searched existing issues and this is not a duplicate.
           required: true
-        - label: I am not running YayGUI as root.
+        - label: I am not running aurdeck as root.
           required: true

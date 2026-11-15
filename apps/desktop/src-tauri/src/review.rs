@@ -1,8 +1,8 @@
 //! Review DTO: what the review screen shows for one AUR package.
 
+use aurdeck_core::ReviewStatus;
+use aurdeck_review::{Approval, RepoFile};
 use serde::Serialize;
-use yaygui_core::ReviewStatus;
-use yaygui_review::{Approval, RepoFile};
 
 use crate::plan::ReviewState;
 

@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for helping translate YayGUI. Translations are coordinated through this issue so that two people do not translate the same language at once.
+        Thank you for helping translate aurdeck. Translations are coordinated through this issue so that two people do not translate the same language at once.
   - type: dropdown
     id: kind
     attributes:

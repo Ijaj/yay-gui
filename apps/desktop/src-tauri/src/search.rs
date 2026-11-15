@@ -2,9 +2,9 @@
 //!
 //! Serialization matches `apps/desktop/src/api/types.ts` exactly.
 
+use aurdeck_alpm_reader::RepoPackage;
+use aurdeck_aur_client::Package as AurPackage;
 use serde::Serialize;
-use yaygui_alpm_reader::RepoPackage;
-use yaygui_aur_client::Package as AurPackage;
 
 /// Maximum results returned per source, to keep the UI fast.
 pub const MAX_RESULTS: usize = 500;

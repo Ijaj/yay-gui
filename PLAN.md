@@ -1,10 +1,10 @@
-# YayGUI — Project Plan
+# aurdeck — Project Plan
 
 Oct 27, 2026 · @eHouse
 
 ## Vision and goals
 
-Build a modern, safe, native-feeling desktop app that does everything `yay` does from the terminal — search, install, update, remove, review PKGBUILDs, manage the cache and config — without ever hiding what is actually running. Working name: **YayGUI** (rename before the first public release; avoid using "yay" as the brand so it is not mistaken for an official upstream project).
+Build a modern, safe, native-feeling desktop app that does everything `yay` does from the terminal — search, install, update, remove, review PKGBUILDs, manage the cache and config — without ever hiding what is actually running. Name: **aurdeck**, all lower case (chosen Nov 2026; it avoids "yay" as the brand so it is not mistaken for an official upstream project). The GitHub repository keeps the name `yay-gui`.
 
 **Who it's for**
 
@@ -190,7 +190,7 @@ A sidebar app with seven screens, a global search bar, a transaction queue that 
 One monorepo: a Cargo workspace for the Rust crates and a pnpm workspace for the UI. Keeping the package-management logic in its own crate (`core`) with no Tauri dependency means it can be tested headless and reused by the notifier or a future CLI.
 
 ```
-yaygui/
+yay-gui/                      # repository root (the project is aurdeck)
 ├── apps/
 │   ├── desktop/              # Tauri app
 │   │   ├── src/              # React + TS UI
@@ -261,9 +261,9 @@ The riskiest code is the part that talks to yay and pacman, so most test effort 
 
 Ship through the AUR as a native package; skip Flatpak, Snap and AppImage. A sandboxed app cannot reach the host's libalpm, pacman database or yay without punching holes that defeat the sandbox, and Arch users expect AUR delivery.
 
-- **`yaygui`** — builds from the release tarball (needs Rust, Node/pnpm as makedepends).
-- **`yaygui-bin`** — prebuilt binary from GitHub Releases, verified by checksum and signature; the fastest install for most users.
-- **`yaygui-git`** — tracks `main` for testers.
+- **`aurdeck`** — builds from the release tarball (needs Rust, Node/pnpm as makedepends).
+- **`aurdeck-bin`** — prebuilt binary from GitHub Releases, verified by checksum and signature; the fastest install for most users.
+- **`aurdeck-git`** — tracks `main` for testers.
 - **Dependencies:** `yay` (>= 13 for review pinning; degrade gracefully on 12.x), `pacman`, `webkit2gtk-4.1`, `pacman-contrib` (for `checkupdates`, `paccache`), optional `polkit`, `reflector`.
 - **Desktop integration:** `.desktop` file, AppStream metainfo XML, hicolor icons, an autostart entry for the notifier (off by default).
 - **Later:** ask EndeavourOS, CachyOS and Garuda maintainers about including it in their repos once 1.0 is stable — distro adoption is the biggest growth lever.
@@ -276,7 +276,7 @@ Because the package itself lives in the AUR, the project should practise what it
 
 **Day-one files**
 
-- `README.md` — one-line pitch, screenshot/GIF, install (`yay -S yaygui-bin`), safety principles, roadmap link.
+- `README.md` — one-line pitch, screenshot/GIF, install (`yay -S aurdeck-bin`), safety principles, roadmap link.
 - `CONTRIBUTING.md` — dev setup in under 10 minutes (a `just dev` or `make dev` target), coding style, commit format, how to run the Arch test container.
 - `CODE_OF_CONDUCT.md` (Contributor Covenant), `SECURITY.md` (private report email or GitHub private advisories), `LICENSE`.
 - Issue templates: bug (with `yay --version`, `pacman --version`, log attachment), feature request, translation; PR template with a safety checklist.
