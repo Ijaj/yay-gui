@@ -16,7 +16,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - `crates/review`: AUR git fetch, PKGBUILD diffs, review history
 - `apps/desktop`: Tauri 2 app root (Vite, package.json, biome, tests)
 - `apps/desktop/src`: React UI. Dirs: `api/`, `components/`, `features/`, `i18n/`, `state/`, `styles/`, `test/`
-- `apps/desktop/src-tauri/src`: Tauri backend. Files: `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `state.rs`, `tx.rs`
+- `apps/desktop/src-tauri/src`: Tauri backend. Files: `installed.rs`, `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `state.rs`, `tx.rs`
 - `docs/adr`: architecture decision records
 
 ## Commands
@@ -47,7 +47,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 Copied from README "Safety principles" and CONTRIBUTING "Safety checklist". Every change must respect them.
 
 - Never run as root. The app refuses to start as UID 0. Nothing you add may run as root.
-- No partial upgrades. Repo installs go through `-S --needed` after a full `-Syu`, or the app asks for an upgrade first. Never use `pacman -Sy` for update checks.
+- No partial upgrades. Repo installs go through `-S --needed` after a full `-Syu`, or the app asks for an upgrade first. Never use `pacman -Sy` for update checks; repo update checks use `checkupdates`.
 - No silent AUR builds. Every new AUR package and every AUR update shows its PKGBUILD or a diff since the last approved version before anything is built. The review cannot be skipped silently.
 - No shell strings. Argument arrays only. Validate package names.
 - Credentials are never stored: not on disk, in logs, or in the database. Sudo passwords go straight to the terminal and are wiped from memory. AUR account credentials, if ever used, go to the system keyring.
@@ -76,7 +76,7 @@ Review tiers for agent work (docs/COMPLETION_PLAN.md 3.3):
 
 ## Arch container (only place write paths may run)
 
-- Docker works in the cloud agent container: start it with `dockerd &` if `docker info` fails.
+- Verified Nov 15, 2026 in the cloud agent container (P0.2 owns the harness). Docker works there: start it with `dockerd &` if `docker info` fails.
 - Outbound traffic goes through the agent proxy, so run containers with `--network host -e HTTPS_PROXY -e https_proxy` and add `/root/.ccr/ca-bundle.crt` as a trust anchor (`trust anchor --store`, then `update-ca-trust`).
 - Allowed Arch hosts: `aur.archlinux.org`, `fastly.mirror.pkgbuild.com`, `geo.mirror.pkgbuild.com`. Anything else is refused; ask the orchestrator, do not route around it.
 - Build and test as a non-root user inside the container; `makepkg` and the app both refuse root.
