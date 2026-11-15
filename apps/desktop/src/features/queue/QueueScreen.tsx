@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import type { PlanResponse } from "../../api";
+import type { PlanResponse, RemoveMode } from "../../api";
 import { ReviewStatusBadge } from "../../components/StatusBadge";
 import { t } from "../../i18n";
 import { UPGRADE_KEY, useQueue } from "../../state/queue";
@@ -42,32 +42,75 @@ function UpgradeToggle() {
   );
 }
 
+const REMOVE_MODES: RemoveMode[] = ["plain", "with_deps", "with_deps_and_config"];
+
+function RemoveButton({ itemKey, name }: { itemKey: string; name: string }) {
+  const remove = useQueue((s) => s.remove);
+  return (
+    <button
+      type="button"
+      className={`ml-auto ${BUTTON}`}
+      aria-label={t("queue.remove", { name })}
+      onClick={() => remove(itemKey)}
+    >
+      ✕
+    </button>
+  );
+}
+
 function QueueList() {
   const all = useQueue((s) => s.items);
-  const items = all.filter((i) => i.action === "install");
-  const remove = useQueue((s) => s.remove);
+  const setRemoveMode = useQueue((s) => s.setRemoveMode);
+  const items = all.filter((i) => i.action !== "system_upgrade");
   if (items.length === 0) return null;
   return (
     <ul aria-label={t("queue.items")} className="m-0 list-none divide-y divide-border p-0">
-      {items.map(
-        (i) =>
-          i.action === "install" && (
-            <li key={i.key} className="flex items-center gap-3 py-2">
-              <span className="text-muted">{t("queue.action.install")}</span>
-              <span className="font-semibold">{i.name}</span>
-              <span className="text-muted">{i.version}</span>
-              <span className="text-xs text-muted">{i.sourceLabel}</span>
-              <button
-                type="button"
-                className={`ml-auto ${BUTTON}`}
-                aria-label={t("queue.remove", { name: i.name })}
-                onClick={() => remove(i.key)}
-              >
-                ✕
-              </button>
-            </li>
-          ),
-      )}
+      {items.map((i) => {
+        switch (i.action) {
+          case "install":
+            return (
+              <li key={i.key} className="flex items-center gap-3 py-2">
+                <span className="text-muted">{t("queue.action.install")}</span>
+                <span className="font-semibold">{i.name}</span>
+                <span className="text-muted">{i.version}</span>
+                <span className="text-xs text-muted">{i.sourceLabel}</span>
+                <RemoveButton itemKey={i.key} name={i.name} />
+              </li>
+            );
+          case "remove":
+            return (
+              <li key={i.key} className="flex flex-wrap items-center gap-3 py-2">
+                <span className="text-danger">{t("queue.action.remove")}</span>
+                <span className="font-semibold">{i.name}</span>
+                <span className="text-muted">{i.version}</span>
+                <select
+                  aria-label={t("queue.removeMode", { name: i.name })}
+                  value={i.mode}
+                  onChange={(e) => setRemoveMode(i.key, e.target.value as RemoveMode)}
+                  className="rounded-ui-sm border border-border bg-surface px-2 py-1"
+                >
+                  {REMOVE_MODES.map((m) => (
+                    <option key={m} value={m}>
+                      {t(`queue.removeMode.${m}` as const)}
+                    </option>
+                  ))}
+                </select>
+                <RemoveButton itemKey={i.key} name={i.name} />
+              </li>
+            );
+          case "clean_orphans":
+            return (
+              <li key={i.key} className="flex items-center gap-3 py-2">
+                <span className="text-danger">{t("queue.action.remove")}</span>
+                <span className="font-semibold">{t("queue.orphans")}</span>
+                <span className="text-xs text-muted">yay -Yc</span>
+                <RemoveButton itemKey={i.key} name={t("queue.orphans")} />
+              </li>
+            );
+          default:
+            return null;
+        }
+      })}
     </ul>
   );
 }

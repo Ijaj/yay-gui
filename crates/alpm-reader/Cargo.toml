@@ -23,6 +23,7 @@ flate2 = "1"
 tar = "0.4"
 ruzstd = "0.9"
 alpm = { version = "5", optional = true }
+lzma-rs = "0.3"
 
 [dev-dependencies]
 tempfile = "3"

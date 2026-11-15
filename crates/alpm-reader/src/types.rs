@@ -54,6 +54,8 @@ pub struct LocalPackage {
     pub installed_size: u64,
     /// Not present in any sync database.
     pub foreign: bool,
+    /// First sync repository that has a package of this name; `None` when foreign.
+    pub repo: Option<String>,
     pub required_by: Vec<String>,
     pub optional_for: Vec<String>,
 }

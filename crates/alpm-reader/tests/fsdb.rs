@@ -167,7 +167,11 @@ fn reverse_deps_and_details() {
         (g.install_date, g.installed_size, g.foreign),
         (Some(1_700_000_100), 1000, false)
     );
-    assert!(db.local_package("aurpkg").unwrap().foreign);
+    let aur = db.local_package("aurpkg").unwrap();
+    assert!(aur.foreign);
+    assert_eq!(aur.repo, None);
+    assert_eq!(g.repo.as_deref(), Some("core"));
+    assert_eq!(rg.repo.as_deref(), Some("extra"));
 }
 
 #[test]
@@ -183,4 +187,51 @@ fn missing_dirs_and_misc() {
     assert_eq!(FsConfig::default().repos, ["core", "extra", "multilib"]);
     let conf = "[options]\nHoldPkg = pacman\n# c\n[core]\nInclude = x\n[extra] # e\n\n[custom]\nServer = y\n";
     assert_eq!(repos_from_pacman_conf(conf), ["core", "extra", "custom"]);
+}
+
+fn xz(data: &[u8]) -> Vec<u8> {
+    let mut out = Vec::new();
+    lzma_rs::xz_compress(&mut std::io::BufReader::new(data), &mut out).unwrap();
+    out
+}
+
+#[test]
+fn xz_repos_are_read_and_broken_repos_are_skipped() {
+    let tmp = tempfile::tempdir().unwrap();
+    let p = tmp.path();
+    std::fs::create_dir_all(p.join("sync")).unwrap();
+    std::fs::write(
+        p.join("sync/core.db"),
+        gz(&sync_tar(&[("glibc", "2.40-1", "GNU C Library", "")])),
+    )
+    .unwrap();
+    // EndeavourOS ships its sync database xz-compressed.
+    std::fs::write(
+        p.join("sync/endeavouros.db"),
+        xz(&sync_tar(&[(
+            "eos-hooks",
+            "1.0-1",
+            "EndeavourOS hooks",
+            "",
+        )])),
+    )
+    .unwrap();
+    // A truncated xz stream: skipped, the rest still loads.
+    std::fs::write(p.join("sync/broken.db"), &xz(b"not a tar")[..12]).unwrap();
+    write_local(p, "eos-hooks", "1.0-1", "");
+    write_local(p, "glibc", "2.40-1", "%REASON%\n1\n\n");
+
+    let db = FsDb::open(&FsConfig {
+        dbpath: p.to_path_buf(),
+        repos: vec!["core".into(), "endeavouros".into(), "broken".into()],
+    })
+    .unwrap();
+    assert_eq!(db.sync_package("eos-hooks").unwrap().repo, "endeavouros");
+    let hooks = db.local_package("eos-hooks").unwrap();
+    assert!(!hooks.foreign);
+    assert_eq!(hooks.repo.as_deref(), Some("endeavouros"));
+    assert_eq!(db.installed(InstalledFilter::All).len(), 2);
+    let w = db.warnings();
+    assert_eq!(w.len(), 1);
+    assert!(w[0].contains("broken.db"), "{w:?}");
 }

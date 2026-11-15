@@ -33,6 +33,11 @@ pub trait PackageDb {
     fn installed(&self, filter: InstalledFilter) -> Vec<LocalPackage>;
     /// Names of installed packages that depend on `name` (reverse deps).
     fn required_by(&self, name: &str) -> Vec<String>;
+    /// Problems that did not stop the databases from loading, such as a sync
+    /// database that could not be read (its packages then look foreign).
+    fn warnings(&self) -> Vec<String> {
+        Vec::new()
+    }
     /// Compare two versions with libalpm semantics.
     fn vercmp(&self, a: &str, b: &str) -> Ordering {
         vercmp(a, b)

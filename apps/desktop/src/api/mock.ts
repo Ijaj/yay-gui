@@ -1,5 +1,7 @@
 // In-memory mock backend used in the browser (`pnpm dev`) and in tests.
 import type {
+  InstalledPackage,
+  InstalledResponse,
   PackageSummary,
   PlannedCommand,
   PlanResponse,
@@ -94,6 +96,92 @@ export const MOCK_PACKAGES: PackageSummary[] = [
     maintainer: "jguer",
     lastModified: now - 10 * DAY,
   },
+];
+
+const MiB = 1024 * 1024;
+
+function installed(
+  name: string,
+  repo: string | null,
+  extra: Partial<InstalledPackage> & { description: string },
+): InstalledPackage {
+  return {
+    name,
+    version: "1.0-1",
+    repo,
+    explicit: true,
+    orphan: false,
+    installDate: now - 30 * DAY,
+    installedSize: 10 * MiB,
+    requiredBy: [],
+    optionalFor: [],
+    ...extra,
+  };
+}
+
+/** What the mock system has installed. */
+export const MOCK_INSTALLED: InstalledPackage[] = [
+  installed("base", "core", {
+    version: "3-2",
+    description: "Minimal package set",
+    installedSize: 0,
+  }),
+  installed("firefox", "extra", {
+    version: "130.0-2",
+    description: "Fast, Private & Safe Web Browser",
+    installedSize: 260 * MiB,
+    installDate: now - 2 * DAY,
+  }),
+  installed("glibc", "core", {
+    version: "2.40+r16-1",
+    description: "GNU C Library",
+    explicit: false,
+    installedSize: 48 * MiB,
+    installDate: now - 400 * DAY,
+    requiredBy: ["base", "firefox", "linux", "python", "yay"],
+  }),
+  installed("linux", "core", {
+    version: "6.11.5.arch1-1",
+    description: "The Linux kernel and modules",
+    installedSize: 140 * MiB,
+    installDate: now - 5 * DAY,
+  }),
+  installed("python", "core", {
+    version: "3.12.7-1",
+    description: "The Python programming language",
+    explicit: false,
+    installedSize: 80 * MiB,
+    requiredBy: ["python-requests"],
+  }),
+  installed("python-requests", "extra", {
+    version: "2.32.3-3",
+    description: "Python HTTP for Humans",
+    explicit: false,
+    orphan: true,
+    installedSize: 1 * MiB,
+    installDate: now - 90 * DAY,
+  }),
+  installed("ttf-dejavu", "extra", {
+    version: "2.37+18+g9b5d1b2f-6",
+    description: "Font family based on the Bitstream Vera Fonts",
+    explicit: false,
+    installedSize: 9 * MiB,
+    optionalFor: ["firefox"],
+  }),
+  installed("old-codec", null, {
+    version: "0.9-1",
+    description: "A codec left behind by a removed AUR package",
+    explicit: false,
+    orphan: true,
+    installedSize: 3 * MiB,
+    installDate: now - 700 * DAY,
+  }),
+  installed("yay", null, {
+    version: "12.4.2-1",
+    description: "Yet another yogurt. Pacman wrapper and AUR helper written in go.",
+    installedSize: 9 * MiB,
+    installDate: now - 200 * DAY,
+  }),
 ];
 
 function matches(p: PackageSummary, q: string): boolean {
@@ -194,6 +282,17 @@ function createMockBackend() {
     ["firefox-esr-bin", { commit: fakeCommit("firefox-esr-bin@1"), approvedAt: now - 90 * DAY }],
   ]);
   let tx: MockTx | null = null;
+  let system = MOCK_INSTALLED.map((p) => ({ ...p }));
+  /** What a successful run does to the installed list (removals only). */
+  function applyRemovals(commands: PlannedCommand[]) {
+    for (const c of commands) {
+      if (c.argv[1] === "-Yc") system = system.filter((p) => !p.orphan);
+      else if (c.argv[1]?.startsWith("-R")) {
+        const names = new Set(c.argv.slice(c.argv.indexOf("--") + 1));
+        system = system.filter((p) => !names.has(p.name));
+      }
+    }
+  }
   let last: TxRecord | null = null;
   const delay = (ms = 5) => new Promise((r) => setTimeout(r, ms));
   const currentCommit = (base: string) => fakeCommit(`${base}@2`);
@@ -382,8 +481,10 @@ function createMockBackend() {
           });
         }
         if (!t.cancelled) {
-          out(":: Proceed with installation? [Y/n] ");
-          const q = "Proceed with installation?";
+          const q = c.argv[1]?.startsWith("-R")
+            ? "Do you want to remove these packages?"
+            : "Proceed with installation?";
+          out(`:: ${q} [Y/n] `);
           t.emit({ type: "prompt", prompt: { kind: "yes_no", question: q, defaultYes: true } });
           const yes = (await ask()) === "y";
           out("\r\n");
@@ -414,10 +515,15 @@ function createMockBackend() {
       await delay();
       t.emit({ type: "command_finished", index, code: 0 });
     }
+    applyRemovals(commands);
     end({ state: "succeeded" });
   }
 
   return {
+    async installed(): Promise<InstalledResponse> {
+      await delay(1);
+      return { packages: system.map((p) => ({ ...p })) };
+    },
     async plan(items: QueueItemRequest[], skipReview: boolean) {
       await delay(1);
       return plan(items, skipReview);

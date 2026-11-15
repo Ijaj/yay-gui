@@ -33,6 +33,34 @@ export interface SearchResponse {
   aurError?: string;
 }
 
+// ---- Installed packages (installed.rs) ----
+
+export interface InstalledPackage {
+  name: string;
+  version: string;
+  description: string;
+  /** Sync repo that has this package; null for foreign (AUR or locally built) packages. */
+  repo: string | null;
+  /** Installed explicitly rather than as a dependency. */
+  explicit: boolean;
+  /** A dependency nothing needs any more (`pacman -Qdt`). */
+  orphan: boolean;
+  /** Unix seconds. */
+  installDate: number | null;
+  /** Bytes. */
+  installedSize: number;
+  requiredBy: string[];
+  optionalFor: string[];
+}
+
+export interface InstalledResponse {
+  packages: InstalledPackage[];
+  /** Set when the pacman database could not be read. */
+  error?: string;
+  /** Sync databases that were skipped; their packages show as foreign. */
+  warnings?: string[];
+}
+
 // ---- Queue → review → run (plan.rs, review.rs, tx.rs) ----
 
 export type RemoveMode = "plain" | "with_deps" | "with_deps_and_config";

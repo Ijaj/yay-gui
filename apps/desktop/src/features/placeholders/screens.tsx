@@ -7,9 +7,6 @@ export const HomeScreen = () => (
 export const UpdatesScreen = () => (
   <Placeholder title={t("nav.updates")} description={t("placeholder.updates.desc")} />
 );
-export const InstalledScreen = () => (
-  <Placeholder title={t("nav.installed")} description={t("placeholder.installed.desc")} />
-);
 export const MaintenanceScreen = () => (
   <Placeholder title={t("nav.maintenance")} description={t("placeholder.maintenance.desc")} />
 );
