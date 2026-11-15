@@ -29,7 +29,7 @@ From PLAN.md, restated as checks an agent or the owner can tick:
 3. A commit that changes after review aborts the build (in the container suite).
 4. Defanged malicious PKGBUILD samples raise risk highlights.
 5. English and Bengali are 100% translated; an accessibility pass has no open blockers.
-6. `yaygui`, `yaygui-bin` and `yaygui-git` build from `packaging/aur/`, and a tagged release produces signed artifacts.
+6. `aurdeck`, `aurdeck-bin` and `aurdeck-git` build from `packaging/aur/`, and a tagged release produces signed artifacts.
 7. No open P1 bugs.
 
 Out of scope until after 1.0 (PLAN.md tier "Later"): local PKGBUILD install, rollback hints, mirror ranking, pacman.conf editing, pluggable scanners, AUR voting.
@@ -88,8 +88,8 @@ The repo's two-approval rule (CONTRIBUTING.md) maps onto the swarm like this:
 
 This cloud container is Ubuntu: it has no pacman, and its Docker daemon was not running when checked. So real-system verification runs in one of two places:
 
-- **GitHub Actions**, in an `archlinux:base-devel` container, started with `workflow_dispatch` (the orchestrator can trigger runs and read the logs). This uses Actions minutes, which the repo currently saves by keeping CI manual. Budget: one run per **arch**-tagged package plus a nightly run once 0.2 features exist.
-- **Docker in the agent's container**, if the daemon can be started there. P0.2 tries this first because it is free; it is unverified.
+- **Docker in the agent's container** (the owner's choice, tried first because it is free). Whether the daemon can be started there is unverified; P0.2 finds out.
+- **GitHub Actions**, in an `archlinux:base-devel` container, started with `workflow_dispatch` (the orchestrator can trigger runs and read the logs). Fallback only: it uses Actions minutes, which the repo saves by keeping CI manual.
 
 The owner's own machine is never used for write-path tests (CONTRIBUTING.md forbids it). It is used for the manual acceptance in section 6.
 
@@ -107,7 +107,9 @@ Size: **S** under 300 changed lines, **M** 300 to 600, **L** must be split by th
 | P0.4 | Split hot files: per-feature i18n catalogs merged at build, per-feature mock modules, Tauri commands in `commands/<feature>.rs`, `state.rs` into services | M | Std | Pure refactor; every existing test must pass unchanged |
 | P0.5 | Fix the review-pin overlay to the real hook API found in P0.2; container test "commit changed after review aborts the build"; yay version detection with graceful fallback on yay 12 (pinning off, UI says so) and a clear screen when yay is missing | M | Safe, arch | If the hook cannot abort or lacks the commit, stop and raise it with the owner (upstream issue) |
 
-P0.1 runs first. P0.2 and P0.3 can run together. P0.4 follows P0.3. P0.5 follows P0.2.
+| P0.6 | **Rename YayGUI to `aurdeck`** (all lower case): app identifier, product name, crate and package names, binary, data and config paths, `YAYGUI_YAY`, docs. No data migration needed because nothing has been released | M | Safe | Runs alone: it touches almost every file |
+
+P0.1 runs first, then P0.6 on its own. After that P0.2 and P0.3 can run together. P0.4 follows P0.3. P0.5 follows P0.2.
 
 **Exit:** a repo package and an AUR package install and remove through the runner in the container; the pin test passes or the blocker is written up; `scripts/check.sh` is green.
 
@@ -121,7 +123,7 @@ P0.1 runs first. P0.2 and P0.3 can run together. P0.4 follows P0.3. P0.5 follows
 | A4 | Installed: bulk select and bulk removal, links to detail | S | Std | A2 |
 | A5 | Interrupted-transaction notice at launch, on any screen (today it only appears when the Transaction screen is opened) | S | Std | — |
 | A6 | Container scenarios for the whole queue → review → run flow, including a wrong password and a declined prompt | M | Safe, arch | P0.5 |
-| A7 | `packaging/aur/yaygui-git/PKGBUILD`, `.desktop` file, icons; README install section | S | Safe | Owner picks the name first (section 6) |
+| A7 | `packaging/aur/aurdeck-git/PKGBUILD`, `.desktop` file, icons; README install section | S | Safe | P0.6; name confirmed free on the AUR (section 6) |
 
 Wave 1: A1 + A3 + A5. Wave 2: A2 + A6 + A7. Wave 3: A4.
 
@@ -184,7 +186,7 @@ All of D1 to D9 are file-disjoint after P0.4 and can run three or four at a time
 
 | ID | Package | Size | Tier | Notes |
 | --- | --- | --- | --- | --- |
-| E1 | `packaging/aur/` for `yaygui` and `yaygui-bin`, AppStream metainfo, notifier autostart entry | S | Safe | Two-approval rule applies |
+| E1 | `packaging/aur/` for `aurdeck` and `aurdeck-bin`, AppStream metainfo, notifier autostart entry | S | Safe | Two-approval rule applies |
 | E2 | Release workflow: build on tag, checksums, signatures, GitHub Release, changelog (`git-cliff`), PR that bumps the AUR PKGBUILD | M | Safe | Signing key is the owner's |
 | E3 | Whole-repo security pass: `/security-review` on `main`, Tauri capabilities and CSP, `cargo deny`, `pnpm audit` | M | Safe | Findings become their own small packages |
 | E4 | Release checklist run against section 2; ADR statuses updated; PLAN.md "next steps" ticked | S | Std | |
@@ -192,8 +194,8 @@ All of D1 to D9 are file-disjoint after P0.4 and can run three or four at a time
 ## 5. Order and parallelism at a glance
 
 ```
-P0.1 → P0.2 ─┬→ P0.5 → A6 ──────────────┐
-       P0.3 ─┴→ P0.4 → A1,A3,A5 → A2,A7 → A4 → 0.1 alpha
+P0.1 → P0.6 → P0.2 ─┬→ P0.5 → A6 ──────────────┐
+              P0.3 ─┴→ P0.4 → A1,A3,A5 → A2,A7 → A4 → 0.1 alpha
                          B1,B4 → B2,B3,B5 → B6 → 0.2   (month of real use starts)
                          C1,C3,C5,C7 → C2,C6,C8,C9 → C4 → 0.3 beta
                          D1..D9 in waves of 3–4 → 0.4 RC
@@ -206,14 +208,20 @@ Phases B and C can overlap once A is merged, because their packages touch differ
 
 | When | Decision or action |
 | --- | --- |
-| Before A7 | **Pick the final name.** It is baked into the app identifier, crate names and data paths; changing it after 0.1 means migrating users' data |
-| Before P0.2 | Allow Actions minutes for the Arch workflow, or accept that it only runs if Docker works in the agent container |
-| Any time | Say whether the orchestrator may merge standard-tier PRs itself |
+| Before A7 | Confirm `aurdeck`, `aurdeck-bin` and `aurdeck-git` are free on the AUR, and the name on GitHub. Only crates.io was checked (free); the AUR was not reachable from the agent's network |
 | After P0.5 | Contact the yay maintainer about the project and the hook use (PLAN.md), especially if a hook field is missing |
 | Phase B exit | Use the app for the weekly upgrade for a month |
 | D4 | Review the Bengali translation |
 | E1, E2 | AUR account and co-maintainer, release signing key, publishing the packages |
 | 1.0 | Announcement |
+
+### Decisions already made (Nov 15, 2026)
+
+| Question | Decision |
+| --- | --- |
+| Final name | **`aurdeck`**, all lower case, everywhere including the UI (P0.6) |
+| Where the Arch tests run | Docker inside the agent's container first; fall back to GitHub Actions only if Docker cannot be started, and tell the owner when that happens |
+| Who merges | The orchestrator merges standard-tier PRs after checks and review pass. Safety-tier PRs always wait for the owner |
 
 ## 7. Risks specific to building this with agents
 
@@ -228,13 +236,13 @@ Phases B and C can overlap once A is merged, because their packages touch differ
 
 ## 8. Starting
 
-1. Owner answers the first three rows of section 6.
-2. Orchestrator runs P0.1 and commits the brief template.
+1. Orchestrator runs P0.1 and commits the brief template.
+2. P0.6 renames the project to `aurdeck`.
 3. P0.2 and P0.3 start as the first parallel wave.
 
 Progress is tracked by ticking the IDs below in the PR that completes each one.
 
-- [ ] P0.1 · [ ] P0.2 · [ ] P0.3 · [ ] P0.4 · [ ] P0.5
+- [ ] P0.1 · [ ] P0.6 · [ ] P0.2 · [ ] P0.3 · [ ] P0.4 · [ ] P0.5
 - [ ] A1 · [ ] A2 · [ ] A3 · [ ] A4 · [ ] A5 · [ ] A6 · [ ] A7
 - [ ] B1 · [ ] B2 · [ ] B3 · [ ] B4 · [ ] B5 · [ ] B6
 - [ ] C1 · [ ] C2 · [ ] C3 · [ ] C4 · [ ] C5 · [ ] C6 · [ ] C7 · [ ] C8 · [ ] C9
