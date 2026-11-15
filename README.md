@@ -4,7 +4,7 @@
 
 > A friendly face for yay — every command visible, every PKGBUILD reviewable, nothing built as root.
 
-aurdeck is a planned modern desktop app for search, install, update, remove and review of packages from the Arch repositories and the AUR. It is built on Tauri 2 (React and TypeScript UI, Rust backend) and is not affiliated with the yay project. "aurdeck" is a working name and will change before the first public release.
+aurdeck is a planned modern desktop app for search, install, update, remove and review of packages from the Arch repositories and the AUR. It is built on Tauri 2 (React and TypeScript UI, Rust backend) and is not affiliated with the yay project.
 
 ## Status
 

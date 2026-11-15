@@ -4,7 +4,7 @@ Oct 27, 2026 · @eHouse
 
 ## Vision and goals
 
-Build a modern, safe, native-feeling desktop app that does everything `yay` does from the terminal — search, install, update, remove, review PKGBUILDs, manage the cache and config — without ever hiding what is actually running. Working name: **aurdeck** (rename before the first public release; avoid using "yay" as the brand so it is not mistaken for an official upstream project).
+Build a modern, safe, native-feeling desktop app that does everything `yay` does from the terminal — search, install, update, remove, review PKGBUILDs, manage the cache and config — without ever hiding what is actually running. Name: **aurdeck**, all lower case (chosen Nov 2026; it avoids "yay" as the brand so it is not mistaken for an official upstream project). The GitHub repository keeps the name `yay-gui`.
 
 **Who it's for**
 
@@ -190,7 +190,7 @@ A sidebar app with seven screens, a global search bar, a transaction queue that 
 One monorepo: a Cargo workspace for the Rust crates and a pnpm workspace for the UI. Keeping the package-management logic in its own crate (`core`) with no Tauri dependency means it can be tested headless and reused by the notifier or a future CLI.
 
 ```
-aurdeck/
+yay-gui/                      # repository root (the project is aurdeck)
 ├── apps/
 │   ├── desktop/              # Tauri app
 │   │   ├── src/              # React + TS UI
