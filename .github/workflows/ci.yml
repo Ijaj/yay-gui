@@ -21,7 +21,7 @@ jobs:
     name: Rust format, lint and tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -49,7 +49,7 @@ jobs:
     name: Supply chain (cargo deny)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
 
   ui:
@@ -59,11 +59,11 @@ jobs:
       run:
         working-directory: apps/desktop
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
