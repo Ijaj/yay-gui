@@ -3,7 +3,8 @@
 #
 #   tests/arch/run.sh [scenario] [flags]
 #
-# scenario: repo-install | aur-install | remove | all (default). Flags after it
+# scenario: repo-install | aur-install | pin-commit-mismatch | pin-pkgbuild-mismatch | pin-unapproved-base |
+# pin-unreviewed-upgrade | remove | all (default). Flags after it
 # go to the harness (for example --no-overlay).
 #
 # Needs docker and a Rust toolchain. The harness binary is built on the host and

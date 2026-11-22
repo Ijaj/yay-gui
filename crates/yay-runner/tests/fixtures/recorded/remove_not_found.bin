@@ -1,0 +1,3 @@
+[sudo] password for alice: 
+]3008;start=a094bdab86cc4d0e978e4d671d76c2d0;user=alice;hostname=vm;bootid=967fe25a4b9e48309f4e436b12c87f2c;pid=1023;pidfdid=11036;comm=sudo;targetuser=root;type=session\error: target not found: aurdeck-no-such-package-xyz
+[?25l[?25h]3008;end=a094bdab86cc4d0e978e4d671d76c2d0\ -> exit status 1

@@ -142,7 +142,7 @@ yay v13 added Lua hooks: `AURPreInstall` fires after PKGBUILD repos are fetched 
 2. It runs yay with a private `XDG_CONFIG_HOME` overlay whose `init.lua` imports the user's own config and adds an `AURPreInstall` hook that aborts if the fetched commit differs from the approved one. (The meta-package-manager project already uses this overlay technique for its cooldown feature — [mpm docs](https://kdeldycke.github.io/meta-package-manager/managers/yay.html).)
 3. Because the review already happened in the GUI, yay can then run with `--answerdiff None --answeredit None` without losing safety.
 
-Open question: confirm from yay's Lua documentation which event fields (commit hash, PKGBUILD path) each hook receives, and whether a hook can abort with a clear message. File an upstream issue early if a field is missing.
+Answered (yay v13.1.0, proven in the Arch container, see [docs/yay-lua-hooks.md](docs/yay-lua-hooks.md)): hooks are registered with `yay.create_autocmd`; `AURPreInstall`/`AURPostDownload` receive `event.match` and `event.data.{base,dir,pkgbuild,...}` but no commit field, so the overlay reads the commit from `<dir>/.git` in pure Lua; `yay.abort("aurdeck: ...")` stops the build before anything is built. No upstream change is needed.
 
 **Risk signals shown on every AUR package**
 
