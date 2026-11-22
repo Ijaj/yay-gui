@@ -144,8 +144,11 @@ upstream change is required. The template needs these corrections:
    io.open, yay.abort, yay.create_autocmd, pcall, dofile`, and the string functions); (b) then set
    `package.path` and load the user's init with `pcall(dofile, user_init)`; (c) register the pin
    LAST, through the captured `create_autocmd`, so it runs after every user callback (callbacks run
-   in registration order, section 3) and only uses the captured functions, which a planted
-   user init or module can no longer replace.
+   in registration order, section 3) and only uses the captured functions. Also capture the
+   file-handle methods (`read`, `close`) and call them as functions. This raises the bar but is
+   not a sandbox: the user's init runs in the same Lua state with the user's full privileges (it
+   can patch shared metatables or the cached clone itself). The pin protects against a changed AUR
+   clone, not against a malicious user config.
 4. Overlay directory must also carry the user's `config.json` (copy or symlink) and put the user's
    config directory on `package.path` before loading the user's `init.lua` (section 2). The user's
    `init.lua` is found only through `$XDG_CONFIG_HOME` or `$HOME/.config/yay`, so the overlay must
