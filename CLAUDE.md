@@ -16,7 +16,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - `crates/review`: AUR git fetch, PKGBUILD diffs, review history
 - `apps/desktop`: Tauri 2 app root (Vite, package.json, biome, tests)
 - `apps/desktop/src`: React UI. Dirs: `api/`, `components/`, `features/`, `i18n/`, `state/`, `styles/`, `test/`
-- `apps/desktop/src-tauri/src`: Tauri backend. Files: `installed.rs`, `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `state.rs`, `tx.rs` (DTOs and pure logic); `commands/<feature>.rs` (Tauri commands); `services/<feature>.rs` (per-feature services owned by `AppState`)
+- `apps/desktop/src-tauri/src`: Tauri backend. Files: `installed.rs`, `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `tx.rs` (DTOs and pure logic); `state.rs` (`AppState` wiring of the services); `commands/<feature>.rs` (Tauri commands); `services/<feature>.rs` (per-feature services owned by `AppState`)
 - `docs/adr`: architecture decision records
 
 ## Commands
@@ -86,7 +86,7 @@ Review tiers for agent work (docs/COMPLETION_PLAN.md 3.3):
 
 Shared files were split by feature (P0.4). A package owns the per-feature file for its feature; the cross-cutting files below still collide, so only the package that owns one in its brief may edit it:
 
-- `apps/desktop/src/i18n/en/<prefix>.json`: one catalog per key prefix (`app`, `header`, `installed`, `nav`, `pkg`, `placeholder`, `queue`, `review`, `search`, `terminal`, `tx`); keys stay flat and fully qualified. A new prefix also needs an import in `i18n/index.ts`.
+- `apps/desktop/src/i18n/en/<prefix>.json`: one catalog per key prefix (`app`, `header`, `installed`, `nav`, `pkg`, `placeholder`, `queue`, `review`, `search`, `terminal`, `tx`); keys stay flat and fully qualified. A new prefix also needs an import and an entry in `catalogs` in `i18n/index.ts` (a test fails otherwise).
 - `apps/desktop/src/api/mock/<feature>.ts`: `search`, `installed`, `plan`, `review`, `transaction`, plus `data.ts` (fixtures), `state.ts` (shared mutable state) and `index.ts` (composes the backend).
 - `apps/desktop/src-tauri/src/commands/<feature>.rs`: `search`, `installed`, `plan`, `review`, `tx`.
 - `apps/desktop/src-tauri/src/services/<feature>.rs`: `installed`, `search`, `plan`, `reviews`, `transactions`, with shared helpers in `services/mod.rs`.

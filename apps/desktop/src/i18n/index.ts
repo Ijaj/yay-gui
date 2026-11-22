@@ -25,21 +25,18 @@ export const catalogs = {
   tx,
 };
 
-const en = {
-  ...app,
-  ...header,
-  ...installed,
-  ...nav,
-  ...pkg,
-  ...placeholder,
-  ...queue,
-  ...review,
-  ...search,
-  ...terminal,
-  ...tx,
-};
+type Catalogs = typeof catalogs;
+type UnionToIntersection<U> = (U extends unknown ? (u: U) => void : never) extends (
+  i: infer I,
+) => void
+  ? I
+  : never;
+type Messages = UnionToIntersection<Catalogs[keyof Catalogs]>;
 
-export type MessageKey = keyof typeof en;
+/** All catalogs merged; derived from `catalogs` so there is only one list. */
+const en = Object.assign({}, ...Object.values(catalogs)) as Messages;
+
+export type MessageKey = keyof Messages;
 
 /** Minimal translation helper: key lookup plus `{name}` interpolation. */
 export function t(key: MessageKey, params?: Record<string, string | number>): string {

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { catalogs, t } from "./index";
+import { catalogs, type MessageKey, t } from "./index";
 
-const EXPECTED_KEY_COUNT = 200;
+// Every catalog file on disk, so a file missing from `catalogs` fails a test.
+const files = import.meta.glob<Record<string, string>>("./en/*.json", {
+  eager: true,
+  import: "default",
+});
 
 describe("i18n catalogs", () => {
   it("every key starts with its file's prefix", () => {
@@ -22,10 +26,17 @@ describe("i18n catalogs", () => {
     }
   });
 
-  it("the merged catalog has the expected number of keys", () => {
-    // Checked once against the old single en.json (200 keys, same values).
-    const total = Object.values(catalogs).reduce((n, c) => n + Object.keys(c).length, 0);
-    expect(total).toBe(EXPECTED_KEY_COUNT);
-    expect(t("queue.title")).toBe(catalogs.queue["queue.title"]);
+  it("every catalog file is registered in catalogs", () => {
+    const prefixes = Object.keys(files).map((f) => f.replace(/^\.\/en\/(.*)\.json$/, "$1"));
+    expect(prefixes.length).toBeGreaterThan(0);
+    expect(Object.keys(catalogs).sort()).toEqual(prefixes.sort());
+  });
+
+  it("t() resolves every key of every file to its own value", () => {
+    for (const [file, catalog] of Object.entries(files)) {
+      for (const [key, value] of Object.entries(catalog)) {
+        expect(t(key as MessageKey), `${key} from ${file}`).toBe(value);
+      }
+    }
   });
 });
