@@ -2,10 +2,11 @@
 
 use std::collections::BTreeMap;
 use std::io::Write as _;
+use std::path::PathBuf;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use aurdeck_alpm_reader::{FsConfig, FsDb, PackageDb, repos_from_pacman_conf};
+use aurdeck_alpm_reader::{FsConfig, FsDb, InstalledFilter, PackageDb, repos_from_pacman_conf};
 use aurdeck_core::{
     PackageName, PackageRef, PlanContext, PlannedCommand, QueueItem, RemoveMode, ReviewMap, Source,
     TransactionState, plan,
@@ -15,6 +16,7 @@ use aurdeck_yay_runner::{Overlay, PromptEvent, TxConfig, TxEvent, start_transact
 use zeroize::Zeroizing;
 
 use crate::prompts;
+use crate::screen::{Decision, Screen};
 use crate::{Cli, Which};
 
 /// Small, stable repo package (extra): a few dozen KiB, depends only on glibc.
@@ -26,28 +28,81 @@ pub const AUR_PACKAGE: &str = "downgrade";
 /// A scenario ends if it takes longer than this without finishing.
 const TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
-/// No output for this long and nothing recognised on screen: the command is
-/// stuck on a prompt the harness does not know.
-const IDLE_LIMIT: Duration = Duration::from_secs(120);
-/// Silence after which the screen tail is checked for prompts the detector misses.
-const SETTLE: Duration = Duration::from_secs(2);
-const TAIL_BYTES: usize = 4096;
+/// After a cancel, how long the driver waits for the transaction to end
+/// before it gives up and exits the process.
+const CANCEL_GRACE: Duration = Duration::from_secs(15);
 
-const PASSWORD_ENV: &str = "AURDECK_HARNESS_SUDO_PASSWORD";
+/// Written by the Dockerfile: readable by `dev` only. Not in the environment,
+/// so yay, makepkg and PKGBUILDs do not inherit it.
+const PASSWORD_FILE: &str = "/etc/aurdeck-harness-sudo-password";
 
 type Res<T = ()> = Result<T, String>;
 
 pub fn run(cli: &Cli) -> Res {
+    let pw = read_password()?;
     match cli.which {
-        Which::RepoInstall => repo_install(),
-        Which::AurInstall => aur_install(cli.no_overlay),
-        Which::Remove => remove(),
+        Which::RepoInstall => repo_install(&pw),
+        Which::AurInstall => aur_install(&pw, cli.no_overlay),
+        Which::Remove => remove(&pw),
         Which::All => {
-            repo_install()?;
-            aur_install(cli.no_overlay)?;
-            remove()
+            repo_install(&pw)?;
+            aur_install(&pw, cli.no_overlay)?;
+            remove(&pw)
         }
     }
+}
+
+fn read_password() -> Res<Zeroizing<String>> {
+    let raw = Zeroizing::new(
+        std::fs::read_to_string(PASSWORD_FILE)
+            .map_err(|e| format!("cannot read {PASSWORD_FILE}: {e}"))?,
+    );
+    Ok(Zeroizing::new(raw.trim_end_matches('\n').to_owned()))
+}
+
+/// Foreign (AUR or local) packages and their versions.
+fn foreign() -> Res<BTreeMap<String, String>> {
+    Ok(open_db()?
+        .installed(InstalledFilter::Foreign)
+        .into_iter()
+        .map(|p| (p.name, p.version))
+        .collect())
+}
+
+/// A scenario that is not about the AUR must not build or change any AUR package.
+fn expect_foreign_unchanged(before: &BTreeMap<String, String>) -> Res {
+    let after = foreign()?;
+    if &after == before {
+        println!("post-condition ok: no AUR or foreign package was built or changed");
+        Ok(())
+    } else {
+        Err(format!(
+            "an AUR or foreign package changed during a repo scenario: before {before:?}, after {after:?}"
+        ))
+    }
+}
+
+/// HEAD of the clone yay builds from (`~/.cache/yay/<pkgbase>`).
+fn built_commit(pkgbase: &str) -> Res<String> {
+    let home = std::env::var_os("HOME").ok_or("HOME is not set")?;
+    let dir = PathBuf::from(home).join(".cache/yay").join(pkgbase);
+    let out = std::process::Command::new("git")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("LC_ALL", "C")
+        .arg("-C")
+        .arg(&dir)
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .map_err(|e| format!("cannot run the commit lookup: {e}"))?;
+    if !out.status.success() {
+        return Err(format!(
+            "cannot read the commit yay built in {}: {}",
+            dir.display(),
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_owned())
 }
 
 fn banner(s: &str) {
@@ -100,9 +155,10 @@ fn now() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
 }
 
-fn repo_install() -> Res {
+fn repo_install(pw: &str) -> Res {
     banner("repo-install");
     expect_absent(REPO_PACKAGE, "precondition")?;
+    let foreign_before = foreign()?;
     let db = open_db()?;
     let sync = db.sync_package(REPO_PACKAGE).ok_or_else(|| {
         format!("{REPO_PACKAGE} is not in the sync databases (run pacman -Sy at image build)")
@@ -117,11 +173,12 @@ fn repo_install() -> Res {
         }),
     ];
     let commands = plan(&queue, &PlanContext::default()).map_err(|e| format!("plan: {e}"))?;
-    drive(commands, Vec::new())?;
-    expect_installed(REPO_PACKAGE)
+    drive(commands, Vec::new(), pw)?;
+    expect_installed(REPO_PACKAGE)?;
+    expect_foreign_unchanged(&foreign_before)
 }
 
-fn aur_install(no_overlay: bool) -> Res {
+fn aur_install(pw: &str, no_overlay: bool) -> Res {
     banner(if no_overlay {
         "aur-install (--no-overlay: diagnostic, review pinning is OFF)"
     } else {
@@ -134,6 +191,8 @@ fn aur_install(no_overlay: bool) -> Res {
             "{AUR_PACKAGE} is now in a sync repo, so this scenario would not build from the AUR; pick another test package"
         ));
     }
+
+    let foreign_before = foreign()?;
 
     // Same steps as the app's review screen: fetch the PKGBUILD repository,
     // show it (here: print the file list), approve exactly that commit.
@@ -190,19 +249,41 @@ fn aur_install(no_overlay: bool) -> Res {
         Some(Overlay::create(&user_config, &approved).map_err(|e| format!("overlay: {e}"))?)
     };
     let env = overlay.as_ref().map(Overlay::env).unwrap_or_default();
-    let result = drive(commands, env);
+    let result = drive(commands, env, pw);
     drop(overlay);
     result?;
-    expect_installed(AUR_PACKAGE)
+    expect_installed(AUR_PACKAGE)?;
+
+    // Only the reviewed package may have been added (its dependencies are repo packages).
+    let after = foreign()?;
+    let changed: Vec<&String> = after
+        .keys()
+        .filter(|k| foreign_before.get(*k) != after.get(*k))
+        .collect();
+    if changed.len() != 1 || changed[0] != AUR_PACKAGE || foreign_before.len() + 1 != after.len() {
+        return Err(format!(
+            "expected exactly {AUR_PACKAGE} to be added; foreign packages before {foreign_before:?}, after {after:?}"
+        ));
+    }
+    // yay must have built the commit that was reviewed and approved.
+    let built = built_commit(&fetched.pkgbase)?;
+    if built != fetched.commit {
+        return Err(format!(
+            "yay built {built} but the approved commit is {}",
+            fetched.commit
+        ));
+    }
+    println!("post-condition ok: yay built the approved commit {built}");
+    Ok(())
 }
 
-fn remove() -> Res {
+fn remove(pw: &str) -> Res {
     banner("remove");
     if installed_version(REPO_PACKAGE)?.is_none() {
         println!(
             "{REPO_PACKAGE} is not installed yet; installing it first (setup, not under test)"
         );
-        repo_install()?;
+        repo_install(pw)?;
         banner("remove (continued)");
     }
     let queue = vec![QueueItem::Remove {
@@ -210,15 +291,16 @@ fn remove() -> Res {
         mode: RemoveMode::WithDeps,
     }];
     let commands = plan(&queue, &PlanContext::default()).map_err(|e| format!("plan: {e}"))?;
-    drive(commands, Vec::new())?;
-    expect_absent(REPO_PACKAGE, "post-condition")
+    let foreign_before = foreign()?;
+    drive(commands, Vec::new(), pw)?;
+    expect_absent(REPO_PACKAGE, "post-condition")?;
+    expect_foreign_unchanged(&foreign_before)
 }
 
 /// Runs the commands with `start_transaction`, printing every event and
 /// answering prompts from the explicit table. Succeeds only when the
 /// transaction ends in `Succeeded`.
-fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
-    let password = std::env::var(PASSWORD_ENV).map_err(|_| format!("{PASSWORD_ENV} is not set"))?;
+fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>, password: &str) -> Res {
     let (tx, rx) = mpsc::channel();
     let config = TxConfig {
         env,
@@ -230,45 +312,41 @@ fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
     let deadline = Instant::now() + TIMEOUT;
     let mut stdout = std::io::stdout();
     let mut failure: Option<String> = None;
+    let mut cancelled_at: Option<Instant> = None;
     let mut final_state: Option<TransactionState> = None;
-    let mut tail: Vec<u8> = Vec::new();
-    let mut total_bytes: usize = 0;
+    let mut screen = Screen::default();
     let mut last_output = Instant::now();
-    let mut answered_at_bytes: Option<usize> = None;
 
     loop {
-        if failure.is_some() {
-            handle.cancel();
-        }
-        if Instant::now() >= deadline && failure.is_none() {
+        if failure.is_none() && Instant::now() >= deadline {
             failure = Some(format!("timed out after {} s", TIMEOUT.as_secs()));
+        }
+        if failure.is_some() && cancelled_at.is_none() {
             handle.cancel();
+            cancelled_at = Some(Instant::now());
+        }
+        if cancelled_at.is_some_and(|t| t.elapsed() > CANCEL_GRACE) {
+            eprintln!(
+                "\nHARNESS FAILED: {}; the transaction did not stop after a cancel, exiting",
+                failure.as_deref().unwrap_or("cancelled")
+            );
+            std::process::exit(1);
         }
         let ev = match rx.recv_timeout(Duration::from_secs(1)) {
             Ok(ev) => ev,
             Err(RecvTimeoutError::Timeout) => {
-                let idle = last_output.elapsed();
-                if failure.is_none() && idle >= SETTLE && answered_at_bytes != Some(total_bytes) {
-                    let screen = prompts::strip_ansi(&tail);
-                    if let Some(line) = prompts::raw_menu(&screen) {
-                        println!("\n[answer] {line:?} (menu the detector does not report yet)");
-                        answered_at_bytes = Some(total_bytes);
-                        if let Err(e) = handle.write_input(format!("{line}\n").as_bytes()) {
-                            failure = Some(format!("could not answer: {e}"));
+                if failure.is_none() {
+                    match screen.poll(last_output.elapsed()) {
+                        Decision::Nothing => {}
+                        Decision::Answer(line) => {
+                            println!(
+                                "\n[answer] {line:?} (exclude menu the detector does not report yet)"
+                            );
+                            if let Err(e) = handle.write_input(format!("{line}\n").as_bytes()) {
+                                failure = Some(format!("could not answer: {e}"));
+                            }
                         }
-                    } else if idle >= IDLE_LIMIT {
-                        let shown: String = screen
-                            .chars()
-                            .rev()
-                            .take(300)
-                            .collect::<Vec<_>>()
-                            .into_iter()
-                            .rev()
-                            .collect();
-                        failure = Some(format!(
-                            "no output for {} s; probably an unrecognised prompt. Screen ends with: {shown:?}",
-                            idle.as_secs()
-                        ));
+                        Decision::Fail(why) => failure = Some(why),
                     }
                 }
                 continue;
@@ -277,12 +355,8 @@ fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
         };
         match ev {
             TxEvent::Output(bytes) => {
-                total_bytes += bytes.len();
                 last_output = Instant::now();
-                tail.extend_from_slice(&bytes);
-                if tail.len() > TAIL_BYTES {
-                    tail.drain(..tail.len() - TAIL_BYTES);
-                }
+                screen.output(&bytes);
                 let _ = stdout.write_all(String::from_utf8_lossy(&bytes).as_bytes());
                 let _ = stdout.flush();
             }
@@ -290,6 +364,7 @@ fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
                 println!("\n[state] {s:?}");
                 if s.is_terminal() {
                     final_state = Some(s);
+                    break;
                 }
             }
             TxEvent::CommandStarted {
@@ -298,6 +373,8 @@ fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
                 description,
                 argv,
             } => {
+                screen.command_started();
+                last_output = Instant::now();
                 println!("\n[command {}/{total}] {description}: {argv:?}", index + 1);
             }
             TxEvent::CommandFinished { index, status } => {
@@ -305,8 +382,9 @@ fn drive(commands: Vec<PlannedCommand>, env: Vec<(String, String)>) -> Res {
             }
             TxEvent::Prompt(p) => {
                 println!("\n[prompt] {p:?}");
+                screen.prompt_reported();
                 if failure.is_none()
-                    && let Err(e) = answer(&handle, &p, &password)
+                    && let Err(e) = answer(&handle, &p, password)
                 {
                     failure = Some(e);
                 }

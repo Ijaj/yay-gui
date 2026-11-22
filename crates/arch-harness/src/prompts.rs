@@ -10,22 +10,20 @@ pub const YES_NO: &[(&str, bool)] = &[
     ("proceed with removal", true),
 ];
 
-/// Answers for yay `==>` menus: `(text the menu contains, line to type)`.
+/// Answers for yay `==>` menus the detector reports: `(text the menu contains, line to type)`.
 pub const MENUS: &[(&str, &str)] = &[
     // "Packages to cleanBuild?" with options "[N]one [A]ll [Ab]ort [I]nstalled [No]tInstalled":
     // nothing needs a clean build in a fresh container.
     ("packages to cleanbuild", "N"),
 ];
 
-/// Prompts `PromptDetector` does not recognise today (found by running real
-/// yay): `(text the screen contains, line to type)`. They are matched on the
-/// ANSI-stripped screen tail only when it ends in a bare `==>` and the output
-/// has been silent for a moment. Remove an entry once the detector emits it.
-pub const RAW_MENUS: &[(&str, &str)] = &[
-    // yay -Syu: "==> Packages to exclude: (eg: "1 2 3", "1-3", "^4" or repo name)".
-    // Empty answer = exclude nothing, which keeps the upgrade complete.
-    ("packages to exclude", ""),
-];
+/// Answer to yay's `==> Packages to exclude:` menu (`-Syu`), which
+/// `PromptDetector` does not report. `aur` names the repository of every AUR
+/// package, so all pending AUR upgrades are excluded: a repo scenario must
+/// never build an AUR package, reviewed or not. Verified against yay v13.1.0
+/// with an outdated AUR package installed: `aur` leaves it alone ("there is
+/// nothing to do"), an empty answer upgrades it.
+pub const EXCLUDE_AUR_UPGRADES: &str = "aur";
 
 /// Removes ANSI escape sequences (CSI and OSC) for matching.
 #[must_use]
@@ -58,21 +56,6 @@ pub fn strip_ansi(bytes: &[u8]) -> String {
         }
     }
     String::from_utf8_lossy(&out).into_owned()
-}
-
-/// Looks up the line to type for a menu the detector does not report, from the
-/// screen tail.
-#[must_use]
-pub fn raw_menu(tail: &str) -> Option<&'static str> {
-    let t = tail.trim_end();
-    if !t.ends_with("==>") {
-        return None;
-    }
-    let lower = t.to_lowercase();
-    RAW_MENUS
-        .iter()
-        .find(|(needle, _)| lower.contains(needle))
-        .map(|(_, a)| *a)
 }
 
 /// Looks up the answer to a yes/no question.
@@ -117,14 +100,6 @@ mod tests {
     fn strips_ansi() {
         let raw = b"\x1b[1m::\x1b[0m hi\x1b]3008;start=x\x1b\\there \x1b]0;t\x07ok";
         assert_eq!(strip_ansi(raw), ":: hithere ok");
-    }
-
-    #[test]
-    fn raw_menu_needs_prompt_at_the_end() {
-        let screen = "==> Packages to exclude: (eg: \"1 2 3\")\n -> Excluding packages may cause partial upgrades\n==> ";
-        assert_eq!(raw_menu(screen), Some(""));
-        assert_eq!(raw_menu("==> Packages to exclude: x\nbuilding..."), None);
-        assert_eq!(raw_menu("==> Something else\n==> "), None);
     }
 
     #[test]
