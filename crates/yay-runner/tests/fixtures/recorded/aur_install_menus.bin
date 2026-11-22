@@ -1,0 +1,121 @@
+AUR Explicit (1): pfetch-git-r340.e18a095-1
+:: [1m(1/1) Downloaded PKGBUILD: pfetch-git[0m
+  1 pfetch-git                               (Build Files Exist)
+==> Packages to cleanBuild?
+==> [N]one [A]ll [Ab]ort [I]nstalled [No]tInstalled or (1 2 3, 1-3, ^4)
+==> N
+  1 pfetch-git                               (Build Files Exist)
+==> Diffs to show?
+==> [N]one [A]ll [Ab]ort [I]nstalled [No]tInstalled or (1 2 3, 1-3, ^4)
+==> A
+:: [1mShowing diff for pfetch-git[0m
+diff --git /home/alice/.cache/yay/pfetch-git/PKGBUILD /home/alice/.cache/yay/pfetch-git/PKGBUILD
+new file mode 100644
+index 0000000..3ee52bc
+--- /dev/null
++++ /home/alice/.cache/yay/pfetch-git/PKGBUILD
+@@ -0,0 +1,25 @@
++# Maintainer: timescam <rex.ky.ng at gmail dot com>
++
++_pkgname=pfetch
++pkgname=$_pkgname-git
++pkgver=r340.e18a095
++pkgrel=1
++pkgdesc="A pretty system information tool written in POSIX sh."
++arch=(any)
++url="https://github.com/dylanaraps/$_pkgname"
++license=('MIT')
++makedepends=('git')
++provides=("$_pkgname")
++conflicts=("pfetch")
++
++source=("$_pkgname::git+https://github.com/dylanaraps/$_pkgname.git")
++md5sums=('SKIP')
++
++pkgver() {
++            cd "$srcdir/$_pkgname"
++            echo "r$(git rev-list --count HEAD).$(git rev-parse --short HEAD)"
++}
++
++package () {
++            install -Dm755 "$srcdir/$_pkgname/pfetch" "$pkgdir/usr/bin/pfetch"
++}
+
+
+:: [1mProceed with install? [Y/n] [0m
+  1 pfetch-git                               (Build Files Exist)
+==> PKGBUILDs to edit?
+==> [N]one [A]ll [Ab]ort [I]nstalled [No]tInstalled or (1 2 3, 1-3, ^4)
+==> N
+[1m[32m==>(B[m[1m Making package: pfetch-git r340.e18a095-1 (Sun Nov 22 10:15:07 2026)(B[m
+[1m[32m==>(B[m[1m Retrieving sources...(B[m
+[1m[34m  ->(B[m[1m Cloning pfetch git repo...(B[m
+Cloning into bare repository '/home/alice/.cache/yay/pfetch-git/pfetch'...
+[Kremote: Enumerating objects: 1666, done.
+[Kremote: Counting objects:   0% (1/862)[Kremote: Counting objects:   1% (9/862)[Kremote: Counting objects:   2% (18/862)[Kremote: Counting objects:   3% (26/862)[Kremote: Counting objects:   4% (35/862)[Kremote: Counting objects:   5% (44/862)[Kremote: Counting objects:   6% (52/862)[Kremote: Counting objects:   7% (61/862)[Kremote: Counting objects:   8% (69/862)[Kremote: Counting objects:   9% (78/862)[Kremote: Counting objects:  10% (87/862)[Kremote: Counting objects:  11% (95/862)[Kremote: Counting objects:  12% (104/862)[Kremote: Counting objects:  13% (113/862)[Kremote: Counting objects:  14% (121/862)[Kremote: Counting objects:  15% (130/862)[Kremote: Counting objects:  16% (138/862)[Kremote: Counting objects:  17% (147/862)[Kremote: Counting objects:  18% (156/862)[Kremote: Counting objects:  19% (164/862)[Kremote: Counting objects:  20% (173/862)[Kremote: Counting objects:  21% (182/862)[Kremote: Counting objects:  22% (190/862)[Kremote: Counting objects:  23% (199/862)[Kremote: Counting objects:  24% (207/862)[Kremote: Counting objects:  25% (216/862)[Kremote: Counting objects:  26% (225/862)[Kremote: Counting objects:  27% (233/862)[Kremote: Counting objects:  28% (242/862)[Kremote: Counting objects:  29% (250/862)[Kremote: Counting objects:  30% (259/862)[Kremote: Counting objects:  31% (268/862)[Kremote: Counting objects:  32% (276/862)[Kremote: Counting objects:  33% (285/862)[Kremote: Counting objects:  34% (294/862)[Kremote: Counting objects:  35% (302/862)[Kremote: Counting objects:  36% (311/862)[Kremote: Counting objects:  37% (319/862)[Kremote: Counting objects:  38% (328/862)[Kremote: Counting objects:  39% (337/862)[Kremote: Counting objects:  40% (345/862)[Kremote: Counting objects:  41% (354/862)[Kremote: Counting objects:  42% (363/862)[Kremote: Counting objects:  43% (371/862)[Kremote: Counting objects:  44% (380/862)[Kremote: Counting objects:  45% (388/862)[Kremote: Counting objects:  46% (397/862)[Kremote: Counting objects:  47% (406/862)[Kremote: Counting objects:  48% (414/862)[Kremote: Counting objects:  49% (423/862)[Kremote: Counting objects:  50% (431/862)[Kremote: Counting objects:  51% (440/862)[Kremote: Counting objects:  52% (449/862)[Kremote: Counting objects:  53% (457/862)[Kremote: Counting objects:  54% (466/862)[Kremote: Counting objects:  55% (475/862)[Kremote: Counting objects:  56% (483/862)[Kremote: Counting objects:  57% (492/862)[Kremote: Counting objects:  58% (500/862)[Kremote: Counting objects:  59% (509/862)[Kremote: Counting objects:  60% (518/862)[Kremote: Counting objects:  61% (526/862)[Kremote: Counting objects:  62% (535/862)[Kremote: Counting objects:  63% (544/862)[Kremote: Counting objects:  64% (552/862)[Kremote: Counting objects:  65% (561/862)[Kremote: Counting objects:  66% (569/862)[Kremote: Counting objects:  67% (578/862)[Kremote: Counting objects:  68% (587/862)[Kremote: Counting objects:  69% (595/862)[Kremote: Counting objects:  70% (604/862)[Kremote: Counting objects:  71% (613/862)[Kremote: Counting objects:  72% (621/862)[Kremote: Counting objects:  73% (630/862)[Kremote: Counting objects:  74% (638/862)[Kremote: Counting objects:  75% (647/862)[Kremote: Counting objects:  76% (656/862)[Kremote: Counting objects:  77% (664/862)[Kremote: Counting objects:  78% (673/862)[Kremote: Counting objects:  79% (681/862)[Kremote: Counting objects:  80% (690/862)[Kremote: Counting objects:  81% (699/862)[Kremote: Counting objects:  82% (707/862)[Kremote: Counting objects:  83% (716/862)[Kremote: Counting objects:  84% (725/862)[Kremote: Counting objects:  85% (733/862)[Kremote: Counting objects:  86% (742/862)[Kremote: Counting objects:  87% (750/862)[Kremote: Counting objects:  88% (759/862)[Kremote: Counting objects:  89% (768/862)[Kremote: Counting objects:  90% (776/862)[Kremote: Counting objects:  91% (785/862)[Kremote: Counting objects:  92% (794/862)[Kremote: Counting objects:  93% (802/862)[Kremote: Counting objects:  94% (811/862)[Kremote: Counting objects:  95% (819/862)[Kremote: Counting objects:  96% (828/862)[Kremote: Counting objects:  97% (837/862)[Kremote: Counting objects:  98% (845/862)[Kremote: Counting objects:  99% (854/862)[Kremote: Counting objects: 100% (862/862)[Kremote: Counting objects: 100% (862/862), done.
+[Kremote: Compressing objects:   0% (1/102)[Kremote: Compressing objects:   1% (2/102)[Kremote: Compressing objects:   2% (3/102)[Kremote: Compressing objects:   3% (4/102)[Kremote: Compressing objects:   4% (5/102)[Kremote: Compressing objects:   5% (6/102)[Kremote: Compressing objects:   6% (7/102)[Kremote: Compressing objects:   7% (8/102)[Kremote: Compressing objects:   8% (9/102)[Kremote: Compressing objects:   9% (10/102)[Kremote: Compressing objects:  10% (11/102)[Kremote: Compressing objects:  11% (12/102)[Kremote: Compressing objects:  12% (13/102)[Kremote: Compressing objects:  13% (14/102)[Kremote: Compressing objects:  14% (15/102)[Kremote: Compressing objects:  15% (16/102)[Kremote: Compressing objects:  16% (17/102)[Kremote: Compressing objects:  17% (18/102)[Kremote: Compressing objects:  18% (19/102)[Kremote: Compressing objects:  19% (20/102)[Kremote: Compressing objects:  20% (21/102)[Kremote: Compressing objects:  21% (22/102)[Kremote: Compressing objects:  22% (23/102)[Kremote: Compressing objects:  23% (24/102)[Kremote: Compressing objects:  24% (25/102)[Kremote: Compressing objects:  25% (26/102)[Kremote: Compressing objects:  26% (27/102)[Kremote: Compressing objects:  27% (28/102)[Kremote: Compressing objects:  28% (29/102)[Kremote: Compressing objects:  29% (30/102)[Kremote: Compressing objects:  30% (31/102)[Kremote: Compressing objects:  31% (32/102)[Kremote: Compressing objects:  32% (33/102)[Kremote: Compressing objects:  33% (34/102)[Kremote: Compressing objects:  34% (35/102)[Kremote: Compressing objects:  35% (36/102)[Kremote: Compressing objects:  36% (37/102)[Kremote: Compressing objects:  37% (38/102)[Kremote: Compressing objects:  38% (39/102)[Kremote: Compressing objects:  39% (40/102)[Kremote: Compressing objects:  40% (41/102)[Kremote: Compressing objects:  41% (42/102)[Kremote: Compressing objects:  42% (43/102)[Kremote: Compressing objects:  43% (44/102)[Kremote: Compressing objects:  44% (45/102)[Kremote: Compressing objects:  45% (46/102)[Kremote: Compressing objects:  46% (47/102)[Kremote: Compressing objects:  47% (48/102)[Kremote: Compressing objects:  48% (49/102)[Kremote: Compressing objects:  49% (50/102)[Kremote: Compressing objects:  50% (51/102)[Kremote: Compressing objects:  51% (53/102)[Kremote: Compressing objects:  52% (54/102)[Kremote: Compressing objects:  53% (55/102)[Kremote: Compressing objects:  54% (56/102)[Kremote: Compressing objects:  55% (57/102)[Kremote: Compressing objects:  56% (58/102)[Kremote: Compressing objects:  57% (59/102)[Kremote: Compressing objects:  58% (60/102)[Kremote: Compressing objects:  59% (61/102)[Kremote: Compressing objects:  60% (62/102)[Kremote: Compressing objects:  61% (63/102)[Kremote: Compressing objects:  62% (64/102)[Kremote: Compressing objects:  63% (65/102)[Kremote: Compressing objects:  64% (66/102)[Kremote: Compressing objects:  65% (67/102)[Kremote: Compressing objects:  66% (68/102)[Kremote: Compressing objects:  67% (69/102)[Kremote: Compressing objects:  68% (70/102)[Kremote: Compressing objects:  69% (71/102)[Kremote: Compressing objects:  70% (72/102)[Kremote: Compressing objects:  71% (73/102)[Kremote: Compressing objects:  72% (74/102)[Kremote: Compressing objects:  73% (75/102)[Kremote: Compressing objects:  74% (76/102)[Kremote: Compressing objects:  75% (77/102)[Kremote: Compressing objects:  76% (78/102)[Kremote: Compressing objects:  77% (79/102)[Kremote: Compressing objects:  78% (80/102)[Kremote: Compressing objects:  79% (81/102)[Kremote: Compressing objects:  80% (82/102)[Kremote: Compressing objects:  81% (83/102)[Kremote: Compressing objects:  82% (84/102)[Kremote: Compressing objects:  83% (85/102)[Kremote: Compressing objects:  84% (86/102)[Kremote: Compressing objects:  85% (87/102)[Kremote: Compressing objects:  86% (88/102)[Kremote: Compressing objects:  87% (89/102)[Kremote: Compressing objects:  88% (90/102)[Kremote: Compressing objects:  89% (91/102)[Kremote: Compressing objects:  90% (92/102)[Kremote: Compressing objects:  91% (93/102)[Kremote: Compressing objects:  92% (94/102)[Kremote: Compressing objects:  93% (95/102)[Kremote: Compressing objects:  94% (96/102)[Kremote: Compressing objects:  95% (97/102)[Kremote: Compressing objects:  96% (98/102)[Kremote: Compressing objects:  97% (99/102)[Kremote: Compressing objects:  98% (100/102)[Kremote: Compressing objects:  99% (101/102)[Kremote: Compressing objects: 100% (102/102)[Kremote: Compressing objects: 100% (102/102), done.
+Receiving objects:   0% (1/1666)Receiving objects:   1% (17/1666)Receiving objects:   2% (34/1666)Receiving objects:   3% (50/1666)Receiving objects:   4% (67/1666)Receiving objects:   5% (84/1666)Receiving objects:   6% (100/1666)Receiving objects:   7% (117/1666)Receiving objects:   8% (134/1666)Receiving objects:   9% (150/1666)Receiving objects:  10% (167/1666)Receiving objects:  11% (184/1666)Receiving objects:  12% (200/1666)Receiving objects:  13% (217/1666)Receiving objects:  14% (234/1666)Receiving objects:  15% (250/1666)Receiving objects:  16% (267/1666)Receiving objects:  17% (284/1666)Receiving objects:  18% (300/1666)Receiving objects:  19% (317/1666)Receiving objects:  20% (334/1666)Receiving objects:  21% (350/1666)Receiving objects:  22% (367/1666)Receiving objects:  23% (384/1666)Receiving objects:  24% (400/1666)Receiving objects:  25% (417/1666)Receiving objects:  26% (434/1666)Receiving objects:  27% (450/1666)Receiving objects:  28% (467/1666)Receiving objects:  29% (484/1666)Receiving objects:  30% (500/1666)Receiving objects:  31% (517/1666)Receiving objects:  32% (534/1666)Receiving objects:  33% (550/1666)Receiving objects:  34% (567/1666)Receiving objects:  35% (584/1666)Receiving objects:  36% (600/1666)Receiving objects:  37% (617/1666)Receiving objects:  38% (634/1666)Receiving objects:  39% (650/1666)Receiving objects:  40% (667/1666)Receiving objects:  41% (684/1666)Receiving objects:  42% (700/1666)Receiving objects:  43% (717/1666)Receiving objects:  44% (734/1666)Receiving objects:  45% (750/1666)Receiving objects:  46% (767/1666)Receiving objects:  47% (784/1666)Receiving objects:  48% (800/1666)Receiving objects:  49% (817/1666)Receiving objects:  50% (833/1666)Receiving objects:  51% (850/1666)Receiving objects:  52% (867/1666)Receiving objects:  53% (883/1666)Receiving objects:  54% (900/1666)Receiving objects:  55% (917/1666)Receiving objects:  56% (933/1666)Receiving objects:  57% (950/1666)Receiving objects:  58% (967/1666)Receiving objects:  59% (983/1666)Receiving objects:  60% (1000/1666)Receiving objects:  61% (1017/1666)Receiving objects:  62% (1033/1666)Receiving objects:  63% (1050/1666)Receiving objects:  64% (1067/1666)Receiving objects:  65% (1083/1666)Receiving objects:  66% (1100/1666)Receiving objects:  67% (1117/1666)Receiving objects:  68% (1133/1666)Receiving objects:  69% (1150/1666)Receiving objects:  70% (1167/1666)Receiving objects:  71% (1183/1666)Receiving objects:  72% (1200/1666)Receiving objects:  73% (1217/1666)Receiving objects:  74% (1233/1666)[Kremote: Total 1666 (delta 818), reused 760 (delta 760), pack-reused 804 (from 1)
+Receiving objects:  75% (1250/1666)Receiving objects:  76% (1267/1666)Receiving objects:  77% (1283/1666)Receiving objects:  78% (1300/1666)Receiving objects:  79% (1317/1666)Receiving objects:  80% (1333/1666)Receiving objects:  81% (1350/1666)Receiving objects:  82% (1367/1666)Receiving objects:  83% (1383/1666)Receiving objects:  84% (1400/1666)Receiving objects:  85% (1417/1666)Receiving objects:  86% (1433/1666)Receiving objects:  87% (1450/1666)Receiving objects:  88% (1467/1666)Receiving objects:  89% (1483/1666)Receiving objects:  90% (1500/1666)Receiving objects:  91% (1517/1666)Receiving objects:  92% (1533/1666)Receiving objects:  93% (1550/1666)Receiving objects:  94% (1567/1666)Receiving objects:  95% (1583/1666)Receiving objects:  96% (1600/1666)Receiving objects:  97% (1617/1666)Receiving objects:  98% (1633/1666)Receiving objects:  99% (1650/1666)Receiving objects: 100% (1666/1666)Receiving objects: 100% (1666/1666), 412.07 KiB | 5.09 MiB/s, done.
+Resolving deltas:   0% (0/1050)Resolving deltas:   1% (11/1050)Resolving deltas:   2% (21/1050)Resolving deltas:   3% (32/1050)Resolving deltas:   4% (42/1050)Resolving deltas:   5% (53/1050)Resolving deltas:   6% (63/1050)Resolving deltas:   7% (74/1050)Resolving deltas:   8% (84/1050)Resolving deltas:   9% (95/1050)Resolving deltas:  10% (105/1050)Resolving deltas:  11% (116/1050)Resolving deltas:  12% (126/1050)Resolving deltas:  13% (137/1050)Resolving deltas:  14% (147/1050)Resolving deltas:  15% (158/1050)Resolving deltas:  16% (168/1050)Resolving deltas:  17% (179/1050)Resolving deltas:  18% (189/1050)Resolving deltas:  19% (200/1050)Resolving deltas:  20% (210/1050)Resolving deltas:  21% (221/1050)Resolving deltas:  22% (231/1050)Resolving deltas:  23% (242/1050)Resolving deltas:  24% (252/1050)Resolving deltas:  25% (263/1050)Resolving deltas:  26% (273/1050)Resolving deltas:  27% (284/1050)Resolving deltas:  28% (294/1050)Resolving deltas:  29% (305/1050)Resolving deltas:  30% (315/1050)Resolving deltas:  31% (326/1050)Resolving deltas:  32% (336/1050)Resolving deltas:  33% (347/1050)Resolving deltas:  34% (357/1050)Resolving deltas:  35% (368/1050)Resolving deltas:  36% (378/1050)Resolving deltas:  37% (389/1050)Resolving deltas:  38% (399/1050)Resolving deltas:  39% (410/1050)Resolving deltas:  40% (420/1050)Resolving deltas:  41% (431/1050)Resolving deltas:  42% (441/1050)Resolving deltas:  43% (452/1050)Resolving deltas:  44% (462/1050)Resolving deltas:  45% (473/1050)Resolving deltas:  46% (483/1050)Resolving deltas:  47% (494/1050)Resolving deltas:  48% (504/1050)Resolving deltas:  49% (515/1050)Resolving deltas:  50% (525/1050)Resolving deltas:  51% (536/1050)Resolving deltas:  52% (546/1050)Resolving deltas:  53% (557/1050)Resolving deltas:  54% (567/1050)Resolving deltas:  55% (578/1050)Resolving deltas:  56% (588/1050)Resolving deltas:  57% (599/1050)Resolving deltas:  58% (609/1050)Resolving deltas:  59% (620/1050)Resolving deltas:  60% (630/1050)Resolving deltas:  61% (641/1050)Resolving deltas:  62% (651/1050)Resolving deltas:  63% (662/1050)Resolving deltas:  64% (672/1050)Resolving deltas:  65% (683/1050)Resolving deltas:  66% (693/1050)Resolving deltas:  67% (704/1050)Resolving deltas:  68% (714/1050)Resolving deltas:  69% (725/1050)Resolving deltas:  70% (735/1050)Resolving deltas:  71% (746/1050)Resolving deltas:  72% (756/1050)Resolving deltas:  73% (767/1050)Resolving deltas:  74% (777/1050)Resolving deltas:  75% (788/1050)Resolving deltas:  76% (798/1050)Resolving deltas:  77% (809/1050)Resolving deltas:  78% (819/1050)Resolving deltas:  79% (830/1050)Resolving deltas:  80% (840/1050)Resolving deltas:  81% (851/1050)Resolving deltas:  82% (861/1050)Resolving deltas:  83% (872/1050)Resolving deltas:  84% (882/1050)Resolving deltas:  85% (893/1050)Resolving deltas:  86% (903/1050)Resolving deltas:  87% (914/1050)Resolving deltas:  88% (924/1050)Resolving deltas:  89% (935/1050)Resolving deltas:  90% (945/1050)Resolving deltas:  91% (956/1050)Resolving deltas:  92% (966/1050)Resolving deltas:  93% (977/1050)Resolving deltas:  94% (987/1050)Resolving deltas:  95% (998/1050)Resolving deltas:  96% (1008/1050)Resolving deltas:  97% (1019/1050)Resolving deltas:  98% (1029/1050)Resolving deltas:  99% (1040/1050)Resolving deltas: 100% (1050/1050)Resolving deltas: 100% (1050/1050), done.
+[1m[33m==> WARNING:(B[m[1m Skipping verification of source file PGP signatures.(B[m
+[1m[32m==>(B[m[1m Validating source files with md5sums...(B[m
+    pfetch ... Skipped
+:: [1m(1/1) Parsing SRCINFO: pfetch-git[0m
+[1m[32m==>(B[m[1m Making package: pfetch-git r340.e18a095-1 (Sun Nov 22 10:15:09 2026)(B[m
+[1m[32m==>(B[m[1m Checking runtime dependencies...(B[m
+[1m[32m==>(B[m[1m Checking buildtime dependencies...(B[m
+[1m[32m==>(B[m[1m Retrieving sources...(B[m
+[1m[34m  ->(B[m[1m Updating pfetch git repo...(B[m
+[1m[32m==>(B[m[1m Validating source files with md5sums...(B[m
+    pfetch ... Skipped
+[1m[32m==>(B[m[1m Removing existing $srcdir/ directory...(B[m
+[1m[32m==>(B[m[1m Extracting sources...(B[m
+[1m[34m  ->(B[m[1m Creating working copy of pfetch git repo...(B[m
+Cloning into 'pfetch'...
+done.
+[1m[32m==>(B[m[1m Starting pkgver()...(B[m
+[1m[32m==>(B[m[1m Updated version: pfetch-git r432.a906ff8-1(B[m
+[1m[32m==>(B[m[1m Sources are ready.(B[m
+[1m[32m==>(B[m[1m Making package: pfetch-git r432.a906ff8-1 (Sun Nov 22 10:15:12 2026)(B[m
+[1m[32m==>(B[m[1m Checking runtime dependencies...(B[m
+[1m[32m==>(B[m[1m Checking buildtime dependencies...(B[m
+[1m[33m==> WARNING:(B[m[1m Using existing $srcdir/ tree(B[m
+[1m[32m==>(B[m[1m Starting pkgver()...(B[m
+[1m[32m==>(B[m[1m Entering fakeroot environment...(B[m
+[1m[32m==>(B[m[1m Starting package()...(B[m
+[1m[32m==>(B[m[1m Tidying install...(B[m
+[1m[34m  ->(B[m[1m Removing libtool files...(B[m
+[1m[34m  ->(B[m[1m Removing static library files...(B[m
+[1m[34m  ->(B[m[1m Purging unwanted files...(B[m
+[1m[34m  ->(B[m[1m Stripping unneeded symbols from binaries and libraries...(B[m
+[1m[34m  ->(B[m[1m Compressing man and info pages...(B[m
+[1m[32m==>(B[m[1m Checking for packaging issues...(B[m
+[1m[32m==>(B[m[1m Creating package "pfetch-git"...(B[m
+[1m[34m  ->(B[m[1m Generating .PKGINFO file...(B[m
+[1m[34m  ->(B[m[1m Generating .BUILDINFO file...(B[m
+[1m[34m  ->(B[m[1m Generating .MTREE file...(B[m
+[1m[34m  ->(B[m[1m Compressing package...(B[m
+[1m[32m==>(B[m[1m Leaving fakeroot environment.(B[m
+[1m[32m==>(B[m[1m Finished making: pfetch-git r432.a906ff8-1 (Sun Nov 22 10:15:13 2026)(B[m
+[1m[32m==>(B[m[1m Cleaning up...(B[m
+[sudo] password for alice: 
+]3008;start=1865c6e970d24c02a480bc8d0a375443;user=alice;hostname=vm;bootid=967fe25a4b9e48309f4e436b12c87f2c;pid=5589;pidfdid=22633;comm=sudo;targetuser=root;type=session\[?25lloading packages...
+resolving dependencies...
+looking for conflicting packages...
+
+Package (1)  New Version     Net Change
+
+pfetch-git   r432.a906ff8-1    0.06 MiB
+
+Total Installed Size:  0.06 MiB
+
+:: Proceed with installation? [Y/n] [?25h
+[?25lchecking keyring...
+checking package integrity...
+loading package files...
+checking for file conflicts...
+:: Processing package changes...
+installing pfetch-git...
+:: Running post-transaction hooks...
+(1/1) Arming ConditionNeedsUpdate...
+[?25h]3008;end=1865c6e970d24c02a480bc8d0a375443\]3008;start=deeb6b7be7e14b988f3010e4e8065ec4;user=alice;hostname=vm;bootid=967fe25a4b9e48309f4e436b12c87f2c;pid=5598;pidfdid=22642;comm=sudo;targetuser=root;type=session\[?25l[?25h]3008;end=deeb6b7be7e14b988f3010e4e8065ec4\

@@ -1,0 +1,3 @@
+Sync Explicit (1): sl-5.05-6
+ -> /var/lib/pacman/db.lck is present.
+ -> There may be another Pacman instance running. Waiting...
