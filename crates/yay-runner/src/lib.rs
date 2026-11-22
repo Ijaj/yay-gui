@@ -16,7 +16,7 @@ mod overlay;
 mod runner;
 mod transaction;
 
-pub use detector::{ErrorKind, PromptDetector, PromptEvent};
+pub use detector::{ErrorKind, MenuKind, PromptDetector, PromptEvent};
 pub use lock::pacman_lock_held;
 pub use overlay::{Overlay, OverlayError};
 pub use runner::{ExitStatus, RunError, RunHandle, RunSpec, Runner};
