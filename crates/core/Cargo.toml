@@ -6,8 +6,13 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+# Derive `ts_rs::TS` on the types the desktop UI receives.
+ts = ["dep:ts-rs"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+ts-rs = { version = "12", optional = true }
 thiserror = "2"
 
 [dev-dependencies]

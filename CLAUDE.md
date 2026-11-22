@@ -16,7 +16,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - `crates/review`: AUR git fetch, PKGBUILD diffs, review history
 - `apps/desktop`: Tauri 2 app root (Vite, package.json, biome, tests)
 - `apps/desktop/src`: React UI. Dirs: `api/`, `components/`, `features/`, `i18n/`, `state/`, `styles/`, `test/`
-- `apps/desktop/src-tauri/src`: Tauri backend. Files: `installed.rs`, `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `state.rs`, `tx.rs`
+- `apps/desktop/src-tauri/src`: Tauri backend. Files: `installed.rs`, `lib.rs`, `main.rs`, `plan.rs`, `review.rs`, `search.rs`, `tx.rs` (DTOs and pure logic); `state.rs` (`AppState` wiring of the services); `commands/<feature>.rs` (Tauri commands); `services/<feature>.rs` (per-feature services owned by `AppState`)
 - `docs/adr`: architecture decision records
 
 ## Commands
@@ -25,6 +25,7 @@ Guidance for AI agents working in this repo. Human contributors: see CONTRIBUTIN
 - `scripts/check.sh rust`: `cargo fmt --all --check`, clippy `-D warnings` (workspace and the alpm docs-rs feature), `cargo test --workspace`.
 - `scripts/check.sh ui`: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
 - `cargo test --workspace` alone is fine for quick crate work.
+- `cargo test -p aurdeck export_bindings -- --ignored` regenerates `apps/desktop/src/api/generated` (TypeScript types from the Rust DTOs, ts-rs). Run it after changing any type that crosses the Tauri boundary; `generated_ts_bindings_are_current` fails when the committed files are stale.
 - Tauri crate: building it needs the WebKitGTK 4.1 dev packages (Arch: `webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator libsoup3 base-devel`; Debian/Ubuntu list is in README).
 - Tauri crate: its build script expects `apps/desktop/dist` to exist. Run `mkdir -p apps/desktop/dist` or `pnpm build` first.
 - `scripts/check.sh deny` needs `cargo-deny`, which may not be installed. If `command -v cargo-deny` fails, do not install it silently. Check new dependency licences by hand against `deny.toml` and say so in your report.
@@ -84,13 +85,13 @@ Review tiers for agent work (docs/COMPLETION_PLAN.md 3.3):
 
 ## Hot files (parallel-worker collisions)
 
-These files collide when workers run in parallel. Only the package that owns one in its brief may edit it:
+Shared files were split by feature (P0.4). A package owns the per-feature file for its feature; the cross-cutting files below still collide, so only the package that owns one in its brief may edit it:
 
-- `apps/desktop/src/i18n/en.json`
-- `apps/desktop/src/api/types.ts`
-- `apps/desktop/src/api/mock.ts`
-- `apps/desktop/src-tauri/src/lib.rs`
-- `apps/desktop/src-tauri/src/state.rs`
+- `apps/desktop/src/i18n/en/<prefix>.json`: one catalog per key prefix (`app`, `header`, `installed`, `nav`, `pkg`, `placeholder`, `queue`, `review`, `search`, `terminal`, `tx`); keys stay flat and fully qualified. A new prefix also needs an import and an entry in `catalogs` in `i18n/index.ts` (a test fails otherwise).
+- `apps/desktop/src/api/mock/<feature>.ts`: `search`, `installed`, `plan`, `review`, `transaction`, plus `data.ts` (fixtures), `state.ts` (shared mutable state) and `index.ts` (composes the backend).
+- `apps/desktop/src-tauri/src/commands/<feature>.rs`: `search`, `installed`, `plan`, `review`, `tx`.
+- `apps/desktop/src-tauri/src/services/<feature>.rs`: `installed`, `search`, `plan`, `reviews`, `transactions`, with shared helpers in `services/mod.rs`.
+- Still shared: `apps/desktop/src/api/types.ts`, `apps/desktop/src-tauri/src/lib.rs` (module list and `generate_handler!`), `apps/desktop/src-tauri/src/state.rs` (`AppState` wiring), `apps/desktop/src/i18n/index.ts`, `apps/desktop/src/api/mock/index.ts`.
 
 If your brief does not own one of these and you need a change in it, stop and report it.
 

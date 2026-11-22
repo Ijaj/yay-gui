@@ -1,0 +1,20 @@
+{
+  "search.title": "Search",
+  "search.filterSource": "Source",
+  "search.source.all": "All",
+  "search.source.repo": "Repos",
+  "search.source.aur": "AUR",
+  "search.installedOnly": "Installed only",
+  "search.results": "Search results",
+  "search.count": "{count} results",
+  "search.emptyInitial.title": "Search for packages",
+  "search.emptyInitial.desc": "Type a name or keyword to search the official repositories and the AUR.",
+  "search.empty.title": "No packages found",
+  "search.empty.desc": "Nothing matches \"{query}\" with the current filters. Try a different term or relax the filters.",
+  "search.loading": "Searching...",
+  "search.error.title": "Search failed",
+  "search.error.desc": "The package search could not be completed.",
+  "search.retry": "Try again",
+  "search.aurError": "AUR results are unavailable: {message}. Showing repository results only.",
+  "search.aurShort": "AUR searches need at least 2 characters."
+}
