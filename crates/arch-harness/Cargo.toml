@@ -1,0 +1,23 @@
+[package]
+name = "aurdeck-arch-harness"
+description = "Headless harness that drives the aurdeck install path against real yay in an Arch container"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "aurdeck-arch-harness"
+path = "src/main.rs"
+
+[dependencies]
+aurdeck-alpm-reader = { path = "../alpm-reader" }
+aurdeck-core = { path = "../core" }
+aurdeck-review = { path = "../review" }
+aurdeck-yay-runner = { path = "../yay-runner" }
+tempfile = "3"
+zeroize = "1"
+
+[lints]
+workspace = true

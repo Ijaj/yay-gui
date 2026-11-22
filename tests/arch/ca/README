@@ -1,0 +1,2 @@
+run.sh copies the proxy CA bundle here as proxy-ca.crt while building the image
+(only when HTTPS_PROXY is set) and removes it afterwards. Do not commit *.crt.

@@ -141,6 +141,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurdeck-arch-harness"
+version = "0.0.1"
+dependencies = [
+ "aurdeck-alpm-reader",
+ "aurdeck-core",
+ "aurdeck-review",
+ "aurdeck-yay-runner",
+ "tempfile",
+ "zeroize",
+]
+
+[[package]]
 name = "aurdeck-aur-client"
 version = "0.0.1"
 dependencies = [

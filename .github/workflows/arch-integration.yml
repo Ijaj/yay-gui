@@ -1,0 +1,24 @@
+name: Arch integration
+
+# Manual only, like ci.yml. Builds the Arch test image and runs the install and
+# remove scenarios against real pacman and yay inside a disposable container.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  arch:
+    name: Arch container scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests/arch/run.sh
+        run: tests/arch/run.sh
