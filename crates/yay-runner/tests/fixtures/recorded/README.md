@@ -8,7 +8,7 @@ tests in `src/detector.rs` (`recorded_*`).
   through the cloud agent proxy), as user `alice` (non-root) with a sudo password. The password
   `hunter2` of this disposable user is typed into the PTY; it is never echoed, so it is not in any file.
 - Terminal: 120 columns x 40 rows, `TERM=xterm-256color`, `LANG=C.UTF-8`.
-- Recorder: `record.py` in this directory (a `pty.fork` that logs every byte read from the PTY master
+- Recorder: `record.py` in this directory (refuses to run outside a container or as root; exits non-zero on a timeout, except `"expect_timeout": true` as used for `db_lock`, or on an unmatched step) (a `pty.fork` that logs every byte read from the PTY master
   and answers prompts from a list of regexes). Typed answers appear in the recording only as the
   terminal echo. Default `/etc/pacman.conf` (no `Color`), except `repo_install_color`.
 - The AUR package is `pfetch-git` (no dependencies; source is a git clone from github.com). The plain
@@ -40,6 +40,14 @@ Observations the detector tests rely on:
 - The `Packages to exclude` menu has a ` -> Excluding packages may cause partial upgrades...` line
   between its heading and the bare `==> ` prompt.
 - makepkg colour sequences use `ESC ( B` (three bytes).
+- Consumer rules, via `PromptEvent::menu_kind()` (`MenuKind`): answer `UpgradeExclude` (`-Syu`) only
+  with an empty line or a repository name such as `aur`, never with package names (excluding a package
+  causes a partial upgrade). Ignore `CleanBuild`, `Diffs` and `Edit` menus when the matching
+  `--answerclean` / `--answerdiff` / `--answeredit` flag was passed: yay answers them itself.
+- Prompts answered on the same line (`[Y/n] n`, `==> None`) are not reported. Only a prompt that
+  arrives without its answer is (the live path); the tests feed the recordings that way (cut after each
+  prompt). A prompt line that ends in a newline with an empty answer (Enter) is still reported when a
+  whole recording is fed at once.
 - yay waits on the lock (`Waiting...`) on the same line instead of failing.
 
 ## Hand-written fixtures (synthetic)

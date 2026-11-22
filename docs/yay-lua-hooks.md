@@ -77,8 +77,11 @@ data.srcinfo {pkgbase,pkgver,pkgrel,epoch,version,pkgdesc,url,arch,license,depen
   all inside the hook:
   - `io.open(dir.."/.git/HEAD")` gave `ref: refs/heads/master`, and the loose ref file gave
     `17c603cf293c3c0b3002e44111e4b255fea38ff6`, equal to `git rev-parse HEAD` of that clone.
-  - `io.popen("git -C '<dir>' rev-parse HEAD")` works and returned the same hash; `os.execute` works.
-  - A pure-Lua read must also handle a detached HEAD and `packed-refs`; the `git` call is simpler.
+  - `io.popen("git -C '<dir>' rev-parse HEAD")` also works and returned the same hash, and so does
+    `os.execute`. Do not use them for the pin: they build a shell string from `dir`, which contains the
+    user-configurable `BuildDir`. Read the files directly (section 7).
+  - A pure-Lua read must handle a detached HEAD (`.git/HEAD` holds the hash), a loose ref file, and
+    `packed-refs` (`<hash> <ref>` lines).
 - Timing (`pkg/sync/workdir/preparer.go:189-243`, `aur_preinstall.go:21-40`):
   `AURPreInstall` runs once per pkgbase, sorted, after the clone/merge and BEFORE yay's clean, diff
   and edit menus and before sources are downloaded. `AURPostDownload` runs after the menus and after
@@ -93,7 +96,7 @@ Yes, in `AURPreInstall` and `AURPostDownload` (not in `PostInstall`, which runs 
 
 - `yay.abort("message")` (`pkg/settings/lua/abort.go`) or a plain `error("message")`. Any error from a
   callback is returned up `PrepareWorkspace` (`preparer.go:228-240`), so yay stops before any build
-  and before any sudo or pacman step. Nothing is installed.
+  and before any sudo or pacman step. Nothing is installed (by source reading; the experiments used `-w`, see the end of section 7).
 - Experiment, `AURPreInstall` hook for `pfetch-git`, run as `yay -S -w ... -- pfetch-git`. A
   rejecting hook also runs before the clean/diff menus appear:
   - `yay.abort(...)`: exit status 1, output ` -> AURPreInstall pfetch-git: aurdeck test: refusing pfetch-git via yay.abort()`
@@ -128,27 +131,50 @@ Yes, the overlay can pin a reviewed commit and abort on mismatch, with yay v13.1
 upstream change is required. The template needs these corrections:
 
 1. Register with `yay.create_autocmd("AURPreInstall", {callback = ...})`, and the same callback on
-   `AURPostDownload`. Pin in both: `AURPostDownload` runs after yay's edit menu and so sees local edits.
+   `AURPostDownload`. Pin in both: `AURPostDownload` runs after yay's edit menu, so it should see edits.
 2. Read the fields as `event.match` / `event.data.base` for the pkgbase and `event.data.dir` for
-   the clone. There is no `event.commit`. Derive the commit with
-   `git -C <dir> rev-parse HEAD` through `io.popen` (use yay's `git_bin` setting and quote the path),
-   or the pure-Lua `.git/HEAD` read. Also require `git -C <dir> status --porcelain` to be empty, so
-   an uncommitted local change to the PKGBUILD or helper files cannot ride along with an approved commit.
-3. Abort with `yay.abort("aurdeck: ...")`. Fail closed: no approved entry for a base, an unreadable HEAD,
-   or a dirty tree all abort.
+   the clone. There is no `event.commit`. Derive the commit in pure Lua with `io.open`: read
+   `<dir>/.git/HEAD`; if it is `ref: <ref>` read `<dir>/.git/<ref>`, and if that file is missing look
+   the ref up in `<dir>/.git/packed-refs`; otherwise HEAD holds the hash. No shell, no `io.popen`
+   (that would put the user-configurable `BuildDir` into a shell string).
+3. Abort with `yay.abort("aurdeck: ...")`. Fail closed: no approved entry for a base or an
+   unreadable HEAD aborts.
+   Order matters, so that a user's own init or module cannot subvert the pin: (a) first capture every
+   global the pin uses as locals (`local io_open, abort, create_autocmd, pcall, dofile =
+   io.open, yay.abort, yay.create_autocmd, pcall, dofile`, and the string functions); (b) then set
+   `package.path` and load the user's init with `pcall(dofile, user_init)`; (c) register the pin
+   LAST, through the captured `create_autocmd`, so it runs after every user callback (callbacks run
+   in registration order, section 3) and only uses the captured functions, which a planted
+   user init or module can no longer replace.
 4. Overlay directory must also carry the user's `config.json` (copy or symlink) and put the user's
    config directory on `package.path` before loading the user's `init.lua` (section 2). The user's
    `init.lua` is found only through `$XDG_CONFIG_HOME` or `$HOME/.config/yay`, so the overlay must
    resolve the real path before it redirects `XDG_CONFIG_HOME`.
-5. Because the hook runs before the menus, `--answerdiff None --answeredit None` remains safe only
-   together with check 2 (clean tree) at `AURPostDownload`. yay still prints the clean-build and
-   diff menus even then (see `tests/fixtures/recorded/aur_install_app.bin`); the diff menu is
-   answered by the flag.
+5. yay still prints the clean-build and diff menus with `--answerdiff None --answeredit None` (see
+   `tests/fixtures/recorded/aur_install_app.bin`); the diff menu is answered by the flag.
+6. Clean-tree check (owner decision, not done by the pin above). A commit match alone does not prove
+   the built tree is the reviewed one: local edits and untracked files ride along. A real check needs
+   `git status --porcelain --ignored` (without `--ignored`, gitignored files ride along), which needs a
+   shell or a process spawn from Lua, i.e. the `io.popen` risk above, or reimplementing it. Also,
+   for `-git` packages `pkgver()` rewrites `PKGBUILD` in the cached clone during the build (seen
+   in the experiments: `Updated version: pfetch-git r432...`), so a clean tree can only be required
+   at `AURPreInstall` / `AURPostDownload` time, before `pkgver()` runs on this build, and a cached
+   clone can be dirty from the previous build.
 
 Nice-to-have upstream asks, none blocking: a `commit` (and `tree_clean`) field on the AUR events so
-hooks need not shell out to git; a documented statement that `io`/`os` are available to hooks.
-Note: `io.popen` and `os.execute` work in hooks, so an `init.lua` has the full privileges of the user
-running yay. That is the same trust level as the user's own yay config.
+hooks need not read `.git` themselves; a documented statement that `io`/`os` are available to hooks.
+`io.popen` and `os.execute` work in hooks, so an `init.lua` has the full privileges of the user running
+yay. That is the same trust level as the user's own yay config.
+
+### What is experiment and what is only source reading
+
+All experiments ran `yay -S -w` (download only) on one AUR package. Verified by experiment: the
+registration call and event fields, reading HEAD with `io.open`, abort messages and exit codes of
+`AURPreInstall`/`AURPostDownload`, hooks running before the menus on `-S`, init.lua failure behaviour,
+`XDG_CONFIG_HOME` redirect, config.json hiding, `require` path. Resting on source citations only,
+not run: hooks firing on `-Syu` AUR upgrades and devel (`--devel`) builds, an abort happening before
+sudo in a real (non `-w`) install, `AURPostDownload` seeing an edit made in yay's edit menu, and the
+split-package case (several packages per base).
 
 ## Experiment commands
 

@@ -49,6 +49,48 @@ pub enum PromptEvent {
     },
 }
 
+/// What a [`PromptEvent::Menu`] asks, classified from its text.
+///
+/// Consumers must answer an [`UpgradeExclude`](Self::UpgradeExclude) menu only with an empty
+/// line or a repository name such as `aur`, never with package names (excluding a package
+/// from `-Syu` causes a partial upgrade), and must ignore [`CleanBuild`](Self::CleanBuild),
+/// [`Diffs`](Self::Diffs) and [`Edit`](Self::Edit) menus when the matching `--answerclean`,
+/// `--answerdiff` or `--answeredit` flag was passed (yay answers those itself).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuKind {
+    /// `==> Packages to exclude:` shown by `yay -Syu`.
+    UpgradeExclude,
+    /// `==> Packages to cleanBuild?`.
+    CleanBuild,
+    /// `==> Diffs to show?`.
+    Diffs,
+    /// `==> PKGBUILDs to edit?`.
+    Edit,
+    /// Any other `==>` menu.
+    Other,
+}
+
+impl PromptEvent {
+    /// For a [`PromptEvent::Menu`], what it asks; `None` for every other event.
+    #[must_use]
+    pub fn menu_kind(&self) -> Option<MenuKind> {
+        let Self::Menu { text } = self else {
+            return None;
+        };
+        Some(if text.contains("Packages to exclude") {
+            MenuKind::UpgradeExclude
+        } else if text.contains("Packages to cleanBuild") {
+            MenuKind::CleanBuild
+        } else if text.contains("Diffs to show") {
+            MenuKind::Diffs
+        } else if text.contains("PKGBUILDs to edit") {
+            MenuKind::Edit
+        } else {
+            MenuKind::Other
+        })
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Esc {
     None,
@@ -56,8 +98,9 @@ enum Esc {
     Csi,
     Osc,
     OscTerm,
-    /// `ESC (` / `ESC )` etc.: one more byte (the charset designator) follows.
-    Charset,
+    /// `ESC` plus intermediate bytes (0x20..=0x2f), e.g. `ESC ( B`, `ESC % G`,
+    /// `ESC - A`, `ESC # 8`: one final byte (0x30..=0x7e) follows.
+    Intermediate,
 }
 
 const MAX_LINE: usize = 8192;
@@ -69,6 +112,8 @@ pub struct PromptDetector {
     line: Vec<u8>,
     cr: bool,
     prompt_emitted: bool,
+    /// A `DbLock` error was reported for the unfinished line (it does not suppress a later prompt).
+    lock_reported: bool,
     recent: VecDeque<String>,
 }
 
@@ -87,6 +132,7 @@ impl PromptDetector {
             line: Vec::new(),
             cr: false,
             prompt_emitted: false,
+            lock_reported: false,
             recent: VecDeque::new(),
         }
     }
@@ -110,6 +156,7 @@ impl PromptDetector {
                         // Carriage return without newline: line is being overwritten.
                         self.line.clear();
                         self.prompt_emitted = false;
+                        self.lock_reported = false;
                         self.cr = false;
                     }
                     if self.line.len() < MAX_LINE {
@@ -120,20 +167,16 @@ impl PromptDetector {
         }
         if !self.prompt_emitted {
             let text = String::from_utf8_lossy(&self.line).into_owned();
-            // yay prints its lock notice and then waits on the same line, so
-            // the lock error is also reported before the newline arrives.
-            if let Some(ev) = self.match_prompt(&text).or_else(|| {
-                classify_error(&text).filter(|e| {
-                    matches!(
-                        e,
-                        PromptEvent::Error {
-                            kind: ErrorKind::DbLock,
-                            ..
-                        }
-                    )
-                })
-            }) {
+            if let Some(ev) = self.match_prompt(&text) {
                 self.prompt_emitted = true;
+                out.push(ev);
+            } else if !self.lock_reported
+                && let Some(ev) = classify_error(&text).filter(is_db_lock)
+            {
+                // yay prints its lock notice and then waits on the same line, so the
+                // error is reported before the newline arrives. This must not hide a
+                // prompt that is printed later on that line.
+                self.lock_reported = true;
                 out.push(ev);
             }
         }
@@ -155,15 +198,19 @@ impl PromptDetector {
                 self.esc = match b {
                     b'[' => Esc::Csi,
                     b']' => Esc::Osc,
-                    // Charset select (makepkg emits `ESC ( B`): three bytes in total.
-                    b'(' | b')' | b'*' | b'+' | b'#' => Esc::Charset,
-                    // Other two-byte escapes: the byte just consumed is final.
+                    // DCS, SOS, PM, APC strings end with BEL or ST like OSC.
+                    b'P' | b'X' | b'^' | b'_' => Esc::Osc,
+                    // makepkg emits `ESC ( B`; also `ESC % G`, `ESC - A`, `ESC # 8`, ...
+                    0x20..=0x2f => Esc::Intermediate,
+                    // Two-byte escapes (`ESC 7`, `ESC =`, `ESC c`): the byte just consumed is final.
                     _ => Esc::None,
                 };
                 true
             }
-            Esc::Charset => {
-                self.esc = Esc::None;
+            Esc::Intermediate => {
+                if !(0x20..=0x2f).contains(&b) {
+                    self.esc = Esc::None;
+                }
                 true
             }
             Esc::Csi => {
@@ -190,15 +237,16 @@ impl PromptDetector {
     fn finish_line(&mut self, out: &mut Vec<PromptEvent>) {
         let text = String::from_utf8_lossy(&self.line).into_owned();
         self.line.clear();
-        if !self.prompt_emitted
-            && let Some(ev) = self
-                .match_prompt(&text)
-                .or_else(|| self.match_answered_prompt(&text))
-                .or_else(|| classify_error(&text))
-        {
-            out.push(ev);
+        if !self.prompt_emitted {
+            let ev = self.match_prompt(&text).or_else(|| {
+                classify_error(&text).filter(|e| !(self.lock_reported && is_db_lock(e)))
+            });
+            if let Some(ev) = ev {
+                out.push(ev);
+            }
         }
         self.prompt_emitted = false;
+        self.lock_reported = false;
         if self.recent.len() >= 4 {
             self.recent.pop_front();
         }
@@ -216,28 +264,6 @@ impl PromptDetector {
             }
         }
         if t == "==>" {
-            return self.menu_text();
-        }
-        None
-    }
-
-    /// A prompt that was already answered on the same line: the terminal echo
-    /// of the reply (or yay's own `--answerdiff None`) follows the prompt, as in
-    /// `:: Proceed with install? [Y/n] n` or `==> None`. This is what a whole
-    /// recording shows for every prompt that was not the last thing printed.
-    fn match_answered_prompt(&self, text: &str) -> Option<PromptEvent> {
-        let t = text.trim();
-        for (marker, default_yes) in YES_NO {
-            if let Some((q, answer)) = t.rsplit_once(marker)
-                && is_echoed_answer(answer)
-            {
-                return Some(yes_no(q, default_yes));
-            }
-        }
-        if let Some(answer) = t.strip_prefix("==>")
-            && is_echoed_answer(answer)
-            && !is_menu_line(t)
-        {
             return self.menu_text();
         }
         None
@@ -276,12 +302,6 @@ fn yes_no(question: &str, default_yes: bool) -> PromptEvent {
     }
 }
 
-/// A short single token: what a user (or `--answer*`) typed after a prompt.
-fn is_echoed_answer(s: &str) -> bool {
-    let s = s.trim();
-    !s.is_empty() && s.len() <= 16 && !s.contains(char::is_whitespace)
-}
-
 /// Heading, options line or `->` note of a yay `==>` selection menu.
 fn is_menu_line(t: &str) -> bool {
     (t.starts_with("==>") && (t.ends_with('?') || t.contains("[N]one") || t.contains("1 2 3")))
@@ -290,17 +310,29 @@ fn is_menu_line(t: &str) -> bool {
 
 fn sudo_user(t: &str) -> Option<String> {
     // sudo: "[sudo] password for alice:"
-    if let Some(rest) = t.strip_prefix("[sudo] password for ") {
+    if let Some(i) = t.rfind("[sudo] password for ") {
+        let rest = &t[i + "[sudo] password for ".len()..];
         return rest.strip_suffix(':').map(|u| u.trim().to_owned());
     }
     // doas: "doas (alice@host) password:"
-    if let Some(rest) = t.strip_prefix("doas (") {
+    if let Some(i) = t.rfind("doas (") {
+        let rest = &t[i + "doas (".len()..];
         let (who, tail) = rest.split_once(')')?;
         if tail.trim() == "password:" {
             return Some(who.split('@').next().unwrap_or(who).to_owned());
         }
     }
     None
+}
+
+fn is_db_lock(e: &PromptEvent) -> bool {
+    matches!(
+        e,
+        PromptEvent::Error {
+            kind: ErrorKind::DbLock,
+            ..
+        }
+    )
 }
 
 fn classify_error(text: &str) -> Option<PromptEvent> {
@@ -444,13 +476,49 @@ mod tests {
         }
     }
 
-    /// Every real prompt (and classified error) of the recording is reported,
-    /// in order and exactly once, at chunk sizes 1, 7 and the whole file, and
-    /// nothing else fires on the build, download and progress output.
+    /// Where a real PTY goes quiet: right after a prompt, before the user's answer
+    /// (and its echo) arrives in a later read.
+    const WAITING_FOR_ANSWER: [&[u8]; 5] = [
+        b"[Y/n] ",
+        b"[y/N] ",
+        b"password for alice: ",
+        b"^4)\r\n==> ",
+        b"break systems\r\n==> ",
+    ];
+
+    /// Feeds a recording the way a waiting reader sees it: output up to each prompt,
+    /// then a pause, then the rest. Each piece is fed in chunks of `chunk` bytes.
+    fn run_live(data: &[u8], chunk: usize) -> Vec<PromptEvent> {
+        let mut cuts: Vec<usize> = Vec::new();
+        for marker in WAITING_FOR_ANSWER {
+            let mut from = 0;
+            while let Some(i) = data[from..].windows(marker.len()).position(|w| w == marker) {
+                cuts.push(from + i + marker.len());
+                from += i + marker.len();
+            }
+        }
+        cuts.push(data.len());
+        cuts.sort_unstable();
+        cuts.dedup();
+        let mut d = PromptDetector::new();
+        let mut out = Vec::new();
+        let mut start = 0;
+        for end in cuts {
+            for c in data[start..end].chunks(chunk) {
+                out.extend(d.feed(c));
+            }
+            start = end;
+        }
+        out
+    }
+
+    /// Every real prompt (and classified error) of the recording is reported, in order and
+    /// exactly once, at chunk sizes 1, 7 and a whole piece, and nothing fires on the build,
+    /// download and progress output.
     fn assert_recording(name: &str, expected: &[&str]) {
         let data = recorded(name);
         for chunk in [1, 7, data.len()] {
-            let got: Vec<String> = run(&data, chunk).iter().map(shape).collect();
+            let got: Vec<String> = run_live(&data, chunk).iter().map(shape).collect();
             assert_eq!(got, expected, "{name}, chunk size {chunk}");
         }
     }
@@ -510,6 +578,8 @@ mod tests {
     fn recorded_aur_install_as_the_app_runs_it() {
         // `--answerdiff None --answeredit None`: yay still prints the clean and diff menus
         // (the diff one is answered by the flag, echoed as `==> None`) and has no edit menu.
+        // The live path reports the diff menu because it arrives without its answer; the
+        // consumer must ignore it (see `MenuKind`).
         assert_recording("aur_install_app", &[CLEAN, DIFFS, "sudo:alice", PROCEED]);
     }
 
@@ -518,7 +588,7 @@ mod tests {
         // The menu `yay -Syu` shows before the transaction: a `->` warning line sits
         // between its heading and the bare `==> ` prompt.
         for chunk in [1, 7, 1_000_000] {
-            let ev = run(&recorded("syu_repo"), chunk);
+            let ev = run_live(&recorded("syu_repo"), chunk);
             assert_eq!(
                 ev[1],
                 PromptEvent::Menu {
@@ -532,6 +602,46 @@ mod tests {
         }
         assert_recording("syu_repo", &["sudo:alice", EXCLUDE, PROCEED]);
         assert_recording("syu_aur", &["sudo:alice", EXCLUDE, CLEAN, DIFFS, PROCEED]);
+    }
+
+    #[test]
+    fn menu_kinds_of_every_recorded_menu() {
+        let kinds = |name: &str| -> Vec<MenuKind> {
+            let data = recorded(name);
+            run_live(&data, 7)
+                .iter()
+                .filter_map(PromptEvent::menu_kind)
+                .collect()
+        };
+        assert_eq!(kinds("syu_repo"), [MenuKind::UpgradeExclude]);
+        assert_eq!(
+            kinds("syu_aur"),
+            [
+                MenuKind::UpgradeExclude,
+                MenuKind::CleanBuild,
+                MenuKind::Diffs
+            ]
+        );
+        assert_eq!(
+            kinds("aur_install_menus"),
+            [MenuKind::CleanBuild, MenuKind::Diffs, MenuKind::Edit]
+        );
+        assert_eq!(
+            kinds("aur_install_app"),
+            [MenuKind::CleanBuild, MenuKind::Diffs]
+        );
+        for name in ["repo_install", "remove", "wrong_password", "db_lock"] {
+            assert!(kinds(name).is_empty(), "{name}");
+        }
+        let other = PromptEvent::Menu {
+            text: "==> Something else?\n==> [N]one".into(),
+        };
+        assert_eq!(other.menu_kind(), Some(MenuKind::Other));
+        let yn = PromptEvent::YesNo {
+            question: "x".into(),
+            default_yes: true,
+        };
+        assert_eq!(yn.menu_kind(), None);
     }
 
     #[test]
@@ -555,6 +665,25 @@ mod tests {
     }
 
     #[test]
+    fn answered_prompts_emit_nothing() {
+        // A line that arrives whole with its answer (typed echo, `--answerdiff None`, or a
+        // build() that prints a question and the reply) is not a pending prompt.
+        let data = b":: Proceed with installation? [Y/n] y\r\n\
+                     ==> [N]one [A]ll or (1 2 3)\r\n==> None\r\n\
+                     ==> Packages to cleanBuild?\r\n==> [N]one [A]ll or (1 2 3)\r\n==> N\r\n";
+        assert!(run(data, data.len()).is_empty());
+        // Whole recordings: every prompt answered with text emits nothing.
+        let app = run(&recorded("aur_install_app"), usize::MAX);
+        assert_eq!(
+            app.iter().map(shape).collect::<Vec<_>>(),
+            ["sudo:alice", PROCEED]
+        );
+        // ... but the same prompt is reported when it arrives without its answer.
+        let mut d = PromptDetector::new();
+        assert_eq!(d.feed(b":: Proceed with installation? [Y/n] ").len(), 1);
+    }
+
+    #[test]
     fn charset_select_escape_is_not_text() {
         // makepkg colours end with `ESC ( B ESC [ m`; the `B` must not leak into the line.
         let data = b"\x1b[1m\x1b[32m==>\x1b(B\x1b[m\x1b[1m Making package: foo\x1b(B\x1b[m\r\n";
@@ -567,20 +696,43 @@ mod tests {
     }
 
     #[test]
-    fn answered_prompts_are_still_reported() {
-        let data =
-            b":: Proceed with install? [Y/n] n\r\n==> [N]one [A]ll or (1 2 3)\r\n==> None\r\n";
-        for chunk in [1, 5, 1000] {
-            let got: Vec<String> = run(data, chunk).iter().map(shape).collect();
-            assert_eq!(
-                got,
-                [
-                    "yn:Proceed with install?:Y",
-                    "menu:==> [N]one [A]ll or (1 2 3)"
-                ],
-                "chunk {chunk}"
-            );
+    fn other_escape_sequences_leave_no_stray_byte() {
+        for esc in [
+            &b"\x1b%G"[..],
+            b"\x1b-A",
+            b"\x1b#8",
+            b"\x1b7",
+            b"\x1b=",
+            b"\x1bc",
+        ] {
+            for chunk in [1, 100] {
+                let mut data = b"ab".to_vec();
+                data.extend_from_slice(esc);
+                data.extend_from_slice(b"cd\n");
+                let mut d = PromptDetector::new();
+                for c in data.chunks(chunk) {
+                    d.feed(c);
+                }
+                assert_eq!(d.recent.back().map(String::as_str), Some("abcd"), "{esc:?}");
+            }
         }
+    }
+
+    #[test]
+    fn early_lock_report_does_not_hide_a_later_prompt() {
+        let lock = b" -> There may be another Pacman instance running. Waiting...";
+        let mut d = PromptDetector::new();
+        let ev = d.feed(lock);
+        assert_eq!(ev.iter().map(shape).collect::<Vec<_>>(), ["err:DbLock"]);
+        // Same line continues with a sudo prompt: reported, and the lock is not repeated.
+        let ev = d.feed(b"[sudo] password for alice: ");
+        assert_eq!(ev.iter().map(shape).collect::<Vec<_>>(), ["sudo:alice"]);
+        assert!(d.feed(b"\r\n").is_empty());
+        // The lock line finished normally is reported exactly once.
+        let mut d = PromptDetector::new();
+        let mut ev = d.feed(lock);
+        ev.extend(d.feed(b"\r\n"));
+        assert_eq!(ev.iter().map(shape).collect::<Vec<_>>(), ["err:DbLock"]);
     }
 
     #[test]
