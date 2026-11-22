@@ -5,9 +5,10 @@ use std::collections::VecDeque;
 /// Category of a recognised failure.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
-    /// `unable to lock database`: another pacman holds (or left) `db.lck`.
+    /// `unable to lock database` (pacman) or yay's `There may be another Pacman
+    /// instance running. Waiting...`: another pacman holds (or left) `db.lck`.
     DbLock,
-    /// `target not found: pkg`.
+    /// `target not found: pkg` (pacman) or `No AUR package found for pkg` (yay).
     TargetNotFound,
     /// `failed to commit transaction`.
     CommitFailed,
@@ -15,7 +16,7 @@ pub enum ErrorKind {
     ConflictingFiles,
     /// makepkg `A failure occurred in build()` / `Error making:`.
     BuildFailed,
-    /// Wrong sudo password (`Sorry, try again.`).
+    /// Wrong sudo password (`Sorry, try again.`, `sudo: 3 incorrect password attempts`).
     AuthFailed,
 }
 
@@ -55,6 +56,8 @@ enum Esc {
     Csi,
     Osc,
     OscTerm,
+    /// `ESC (` / `ESC )` etc.: one more byte (the charset designator) follows.
+    Charset,
 }
 
 const MAX_LINE: usize = 8192;
@@ -117,7 +120,19 @@ impl PromptDetector {
         }
         if !self.prompt_emitted {
             let text = String::from_utf8_lossy(&self.line).into_owned();
-            if let Some(ev) = self.match_prompt(&text) {
+            // yay prints its lock notice and then waits on the same line, so
+            // the lock error is also reported before the newline arrives.
+            if let Some(ev) = self.match_prompt(&text).or_else(|| {
+                classify_error(&text).filter(|e| {
+                    matches!(
+                        e,
+                        PromptEvent::Error {
+                            kind: ErrorKind::DbLock,
+                            ..
+                        }
+                    )
+                })
+            }) {
                 self.prompt_emitted = true;
                 out.push(ev);
             }
@@ -140,9 +155,15 @@ impl PromptDetector {
                 self.esc = match b {
                     b'[' => Esc::Csi,
                     b']' => Esc::Osc,
-                    // Two-byte escapes (e.g. ESC ( B charset select): treat the next byte as final.
+                    // Charset select (makepkg emits `ESC ( B`): three bytes in total.
+                    b'(' | b')' | b'*' | b'+' | b'#' => Esc::Charset,
+                    // Other two-byte escapes: the byte just consumed is final.
                     _ => Esc::None,
                 };
+                true
+            }
+            Esc::Charset => {
+                self.esc = Esc::None;
                 true
             }
             Esc::Csi => {
@@ -170,7 +191,10 @@ impl PromptDetector {
         let text = String::from_utf8_lossy(&self.line).into_owned();
         self.line.clear();
         if !self.prompt_emitted
-            && let Some(ev) = self.match_prompt(&text).or_else(|| classify_error(&text))
+            && let Some(ev) = self
+                .match_prompt(&text)
+                .or_else(|| self.match_answered_prompt(&text))
+                .or_else(|| classify_error(&text))
         {
             out.push(ev);
         }
@@ -186,13 +210,9 @@ impl PromptDetector {
         if let Some(user) = sudo_user(t) {
             return Some(PromptEvent::SudoPassword { user });
         }
-        for (suffix, default_yes) in [("[Y/n]", true), ("[y/N]", false)] {
+        for (suffix, default_yes) in YES_NO {
             if let Some(q) = t.strip_suffix(suffix) {
-                let question = q.trim().trim_start_matches(':').trim().to_owned();
-                return Some(PromptEvent::YesNo {
-                    question,
-                    default_yes,
-                });
+                return Some(yes_no(q, default_yes));
             }
         }
         if t == "==>" {
@@ -201,25 +221,71 @@ impl PromptDetector {
         None
     }
 
-    /// A bare `==> ` is only a menu when the previous line was the options line,
-    /// otherwise a chunk split right after `==> ` would be misreported.
-    fn menu_text(&self) -> Option<PromptEvent> {
-        let last = self.recent.back()?;
-        if !(last.contains("[N]one") || last.contains("1 2 3")) {
-            return None;
-        }
-        let mut parts = Vec::new();
-        if self.recent.len() >= 2 {
-            let head = &self.recent[self.recent.len() - 2];
-            if head.trim_start().starts_with("==>") {
-                parts.push(head.trim().to_owned());
+    /// A prompt that was already answered on the same line: the terminal echo
+    /// of the reply (or yay's own `--answerdiff None`) follows the prompt, as in
+    /// `:: Proceed with install? [Y/n] n` or `==> None`. This is what a whole
+    /// recording shows for every prompt that was not the last thing printed.
+    fn match_answered_prompt(&self, text: &str) -> Option<PromptEvent> {
+        let t = text.trim();
+        for (marker, default_yes) in YES_NO {
+            if let Some((q, answer)) = t.rsplit_once(marker)
+                && is_echoed_answer(answer)
+            {
+                return Some(yes_no(q, default_yes));
             }
         }
-        parts.push(last.trim().to_owned());
-        Some(PromptEvent::Menu {
-            text: parts.join("\n"),
-        })
+        if let Some(answer) = t.strip_prefix("==>")
+            && is_echoed_answer(answer)
+            && !is_menu_line(t)
+        {
+            return self.menu_text();
+        }
+        None
     }
+
+    /// A bare `==> ` is only a menu when the contiguous block of menu lines
+    /// right above it (heading, `[N]one` options line, `->` warnings) carries a
+    /// menu marker: the options line, or the `"1 2 3"` hint of yay's
+    /// `Packages to exclude:` menu. Otherwise a chunk split right after the
+    /// `==> ` of `==> Making package:` would be misreported.
+    fn menu_text(&self) -> Option<PromptEvent> {
+        let mut block: Vec<&str> = Vec::new();
+        for line in self.recent.iter().rev() {
+            let t = line.trim();
+            if !is_menu_line(t) {
+                break;
+            }
+            block.push(t);
+        }
+        block.reverse();
+        let text = block.join("\n");
+        if text.contains("[N]one") || text.contains("1 2 3") {
+            Some(PromptEvent::Menu { text })
+        } else {
+            None
+        }
+    }
+}
+
+const YES_NO: [(&str, bool); 2] = [("[Y/n]", true), ("[y/N]", false)];
+
+fn yes_no(question: &str, default_yes: bool) -> PromptEvent {
+    PromptEvent::YesNo {
+        question: question.trim().trim_start_matches(':').trim().to_owned(),
+        default_yes,
+    }
+}
+
+/// A short single token: what a user (or `--answer*`) typed after a prompt.
+fn is_echoed_answer(s: &str) -> bool {
+    let s = s.trim();
+    !s.is_empty() && s.len() <= 16 && !s.contains(char::is_whitespace)
+}
+
+/// Heading, options line or `->` note of a yay `==>` selection menu.
+fn is_menu_line(t: &str) -> bool {
+    (t.starts_with("==>") && (t.ends_with('?') || t.contains("[N]one") || t.contains("1 2 3")))
+        || t.starts_with("->")
 }
 
 fn sudo_user(t: &str) -> Option<String> {
@@ -238,25 +304,27 @@ fn sudo_user(t: &str) -> Option<String> {
 }
 
 fn classify_error(text: &str) -> Option<PromptEvent> {
-    let kind =
-        if text.contains("unable to lock database") || text.contains("could not lock database") {
-            ErrorKind::DbLock
-        } else if text.contains("conflicting files") {
-            ErrorKind::ConflictingFiles
-        } else if text.contains("target not found") {
-            ErrorKind::TargetNotFound
-        } else if text.contains("failed to commit transaction") {
-            ErrorKind::CommitFailed
-        } else if text.contains("A failure occurred in")
-            || text.trim_start().starts_with("Error making:")
-            || text.contains("Error making:")
-        {
-            ErrorKind::BuildFailed
-        } else if text.trim() == "Sorry, try again." {
-            ErrorKind::AuthFailed
-        } else {
-            return None;
-        };
+    let kind = if text.contains("unable to lock database")
+        || text.contains("could not lock database")
+        || text.contains("There may be another Pacman instance running")
+    {
+        ErrorKind::DbLock
+    } else if text.contains("conflicting files") {
+        ErrorKind::ConflictingFiles
+    } else if text.contains("target not found") || text.contains("No AUR package found for") {
+        ErrorKind::TargetNotFound
+    } else if text.contains("failed to commit transaction") {
+        ErrorKind::CommitFailed
+    } else if text.contains("A failure occurred in")
+        || text.trim_start().starts_with("Error making:")
+        || text.contains("Error making:")
+    {
+        ErrorKind::BuildFailed
+    } else if text.trim() == "Sorry, try again." || text.contains("incorrect password attempt") {
+        ErrorKind::AuthFailed
+    } else {
+        return None;
+    };
     Some(PromptEvent::Error {
         kind,
         line: text.trim().to_owned(),
@@ -349,6 +417,170 @@ mod tests {
             ev.iter().filter(|e| err(ErrorKind::BuildFailed)(e)).count(),
             2
         );
+    }
+
+    // ---- Recordings of real yay v13.1.0 sessions (tests/fixtures/recorded/README.md) ----
+
+    fn recorded(name: &str) -> Vec<u8> {
+        std::fs::read(format!(
+            "{}/tests/fixtures/recorded/{name}.bin",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap()
+    }
+
+    /// One short token per event: `sudo:alice`, `yn:Question?:Y`, `menu:<heading>`, `err:Kind`.
+    fn shape(ev: &PromptEvent) -> String {
+        match ev {
+            PromptEvent::SudoPassword { user } => format!("sudo:{user}"),
+            PromptEvent::YesNo {
+                question,
+                default_yes,
+            } => format!("yn:{question}:{}", if *default_yes { "Y" } else { "n" }),
+            PromptEvent::Menu { text } => {
+                format!("menu:{}", text.lines().next().unwrap_or_default())
+            }
+            PromptEvent::Error { kind, .. } => format!("err:{kind:?}"),
+        }
+    }
+
+    /// Every real prompt (and classified error) of the recording is reported,
+    /// in order and exactly once, at chunk sizes 1, 7 and the whole file, and
+    /// nothing else fires on the build, download and progress output.
+    fn assert_recording(name: &str, expected: &[&str]) {
+        let data = recorded(name);
+        for chunk in [1, 7, data.len()] {
+            let got: Vec<String> = run(&data, chunk).iter().map(shape).collect();
+            assert_eq!(got, expected, "{name}, chunk size {chunk}");
+        }
+    }
+
+    const CLEAN: &str = "menu:==> Packages to cleanBuild?";
+    const DIFFS: &str = "menu:==> Diffs to show?";
+    const PROCEED: &str = "yn:Proceed with installation?:Y";
+    const EXCLUDE: &str =
+        "menu:==> Packages to exclude: (eg: \"1 2 3\", \"1-3\", \"^4\" or repo name)";
+
+    #[test]
+    fn recorded_repo_install() {
+        assert_recording("repo_install", &["sudo:alice", PROCEED]);
+        assert_recording("repo_install_color", &["sudo:alice", PROCEED]);
+    }
+
+    #[test]
+    fn recorded_repo_install_with_sudo_retry() {
+        assert_recording(
+            "wrong_password",
+            &["sudo:alice", "err:AuthFailed", "sudo:alice", PROCEED],
+        );
+    }
+
+    #[test]
+    fn recorded_three_wrong_passwords() {
+        assert_recording(
+            "wrong_password_3x",
+            &[
+                "sudo:alice",
+                "err:AuthFailed",
+                "sudo:alice",
+                "err:AuthFailed",
+                "sudo:alice",
+                "err:AuthFailed",
+            ],
+        );
+    }
+
+    #[test]
+    fn recorded_aur_install_with_menus() {
+        // Diff accepted with Y, edit menu answered N, then sudo and pacman's confirmation.
+        assert_recording(
+            "aur_install_menus",
+            &[
+                CLEAN,
+                DIFFS,
+                "yn:Proceed with install?:Y",
+                "menu:==> PKGBUILDs to edit?",
+                "sudo:alice",
+                PROCEED,
+            ],
+        );
+    }
+
+    #[test]
+    fn recorded_aur_install_as_the_app_runs_it() {
+        // `--answerdiff None --answeredit None`: yay still prints the clean and diff menus
+        // (the diff one is answered by the flag, echoed as `==> None`) and has no edit menu.
+        assert_recording("aur_install_app", &[CLEAN, DIFFS, "sudo:alice", PROCEED]);
+    }
+
+    #[test]
+    fn recorded_syu_exclude_menu() {
+        // The menu `yay -Syu` shows before the transaction: a `->` warning line sits
+        // between its heading and the bare `==> ` prompt.
+        for chunk in [1, 7, 1_000_000] {
+            let ev = run(&recorded("syu_repo"), chunk);
+            assert_eq!(
+                ev[1],
+                PromptEvent::Menu {
+                    text:
+                        "==> Packages to exclude: (eg: \"1 2 3\", \"1-3\", \"^4\" or repo name)\n\
+                           -> Excluding packages may cause partial upgrades and break systems"
+                            .into()
+                },
+                "chunk size {chunk}"
+            );
+        }
+        assert_recording("syu_repo", &["sudo:alice", EXCLUDE, PROCEED]);
+        assert_recording("syu_aur", &["sudo:alice", EXCLUDE, CLEAN, DIFFS, PROCEED]);
+    }
+
+    #[test]
+    fn recorded_removal() {
+        assert_recording(
+            "remove",
+            &["sudo:alice", "yn:Do you want to remove these packages?:Y"],
+        );
+        assert_recording("remove_not_found", &["sudo:alice", "err:TargetNotFound"]);
+    }
+
+    #[test]
+    fn recorded_package_not_found() {
+        assert_recording("target_not_found", &["err:TargetNotFound"]);
+    }
+
+    #[test]
+    fn recorded_db_lock_held_by_another_pacman() {
+        // yay prints the notice and keeps waiting on that line: no newline ever follows.
+        assert_recording("db_lock", &["err:DbLock"]);
+    }
+
+    #[test]
+    fn charset_select_escape_is_not_text() {
+        // makepkg colours end with `ESC ( B ESC [ m`; the `B` must not leak into the line.
+        let data = b"\x1b[1m\x1b[32m==>\x1b(B\x1b[m\x1b[1m Making package: foo\x1b(B\x1b[m\r\n";
+        let mut d = PromptDetector::new();
+        assert!(d.feed(data).is_empty());
+        assert_eq!(
+            d.recent.back().map(String::as_str),
+            Some("==> Making package: foo")
+        );
+    }
+
+    #[test]
+    fn answered_prompts_are_still_reported() {
+        let data =
+            b":: Proceed with install? [Y/n] n\r\n==> [N]one [A]ll or (1 2 3)\r\n==> None\r\n";
+        for chunk in [1, 5, 1000] {
+            let got: Vec<String> = run(data, chunk).iter().map(shape).collect();
+            assert_eq!(
+                got,
+                [
+                    "yn:Proceed with install?:Y",
+                    "menu:==> [N]one [A]ll or (1 2 3)"
+                ],
+                "chunk {chunk}"
+            );
+        }
     }
 
     #[test]
