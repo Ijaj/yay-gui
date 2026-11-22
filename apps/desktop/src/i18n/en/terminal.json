@@ -1,0 +1,6 @@
+{
+  "terminal.title": "Terminal",
+  "terminal.idle": "No transaction running",
+  "terminal.close": "Close terminal",
+  "terminal.empty": "No output yet."
+}

@@ -1,0 +1,6 @@
+{
+  "placeholder.home.desc": "Update counts, Arch News, cache size and a one-click system upgrade are coming here.",
+  "placeholder.updates.desc": "Grouped repo and AUR updates with version changes and review status are coming here.",
+  "placeholder.maintenance.desc": "Cache cleaner, orphan cleanup, package stats and pacman log history are coming here.",
+  "placeholder.settings.desc": "App preferences, yay options, hooks and notifier settings are coming here."
+}

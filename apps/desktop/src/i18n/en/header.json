@@ -1,0 +1,9 @@
+{
+  "header.searchLabel": "Search packages",
+  "header.searchPlaceholder": "Search packages (press / to focus)",
+  "header.queue": "Queue",
+  "header.queueLabel": "Transaction queue, {count} items",
+  "header.terminal": "Terminal",
+  "header.running": "Transaction running: step {step} of {total}",
+  "header.runningShort": "Running…"
+}

@@ -29,7 +29,7 @@
 
 ## Files owned (may edit)
 
-<!-- Exact paths. Hot files (i18n/en.json, api/types.ts, api/mock.ts, tauri lib.rs, tauri state.rs) only if listed here. -->
+<!-- Exact paths. Shared files (i18n/index.ts, api/index.ts, api/types.ts, api/mock/index.ts, tauri lib.rs, tauri state.rs, services/mod.rs) only if listed here; prefer your feature's own i18n/en/<prefix>.json, api/mock/<feature>.ts, commands/<feature>.rs and services/<feature>.rs. -->
 
 - `<path>`
 
