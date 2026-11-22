@@ -18,6 +18,7 @@ pub enum Which {
     RepoInstall,
     AurInstall,
     PinCommitMismatch,
+    PinPkgbuildMismatch,
     PinUnapprovedBase,
     PinUnreviewedUpgrade,
     Remove,
@@ -32,7 +33,7 @@ pub struct Cli {
     pub no_overlay: bool,
 }
 
-const USAGE: &str = "usage: aurdeck-arch-harness <repo-install|aur-install|pin-commit-mismatch|pin-unapproved-base|pin-unreviewed-upgrade|remove|all> [--no-overlay]";
+const USAGE: &str = "usage: aurdeck-arch-harness <repo-install|aur-install|pin-commit-mismatch|pin-pkgbuild-mismatch|pin-unapproved-base|pin-unreviewed-upgrade|remove|all> [--no-overlay]";
 
 pub fn parse_args(args: &[String]) -> Result<Cli, String> {
     let mut which = None;
@@ -53,6 +54,7 @@ pub fn parse_args(args: &[String]) -> Result<Cli, String> {
                     "repo-install" => Which::RepoInstall,
                     "aur-install" => Which::AurInstall,
                     "pin-commit-mismatch" => Which::PinCommitMismatch,
+                    "pin-pkgbuild-mismatch" => Which::PinPkgbuildMismatch,
                     "pin-unapproved-base" => Which::PinUnapprovedBase,
                     "pin-unreviewed-upgrade" => Which::PinUnreviewedUpgrade,
                     "remove" => Which::Remove,

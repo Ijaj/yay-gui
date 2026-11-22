@@ -2,6 +2,10 @@
 //! loads the user's config and then aborts builds whose commit or PKGBUILD
 //! differs from the reviewed one.
 //!
+//! Note: the commit-only [`Overlay::create`] (still used by the desktop app until
+//! P0.5b) does NOT compare the PKGBUILD text, only the commit; use
+//! [`Overlay::create_pinned`] for the full pin.
+//!
 //! The hook API is yay v13.1.0's real one, see `docs/yay-lua-hooks.md`.
 
 use std::collections::BTreeMap;
@@ -43,7 +47,9 @@ pub struct Overlay {
 
 impl Overlay {
     /// Commit-only pin, kept so existing callers compile unchanged. The
-    /// PKGBUILD text is NOT compared; prefer [`Overlay::create_pinned`].
+    /// PKGBUILD text is NOT compared. Prefer [`Overlay::create_pinned`] (not
+    /// `#[deprecated]` only because that would break `-D warnings` in the
+    /// desktop crate until P0.5b moves it).
     ///
     /// # Errors
     /// Fails on I/O errors or a malformed commit hash.

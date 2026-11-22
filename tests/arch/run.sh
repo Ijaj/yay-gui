@@ -3,7 +3,7 @@
 #
 #   tests/arch/run.sh [scenario] [flags]
 #
-# scenario: repo-install | aur-install | pin-commit-mismatch | pin-unapproved-base |
+# scenario: repo-install | aur-install | pin-commit-mismatch | pin-pkgbuild-mismatch | pin-unapproved-base |
 # pin-unreviewed-upgrade | remove | all (default). Flags after it
 # go to the harness (for example --no-overlay).
 #

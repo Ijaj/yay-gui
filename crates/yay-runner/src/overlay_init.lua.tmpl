@@ -92,11 +92,15 @@ local function first_line(path)
   return (s_gsub(line, "%s+$", ""))
 end
 
--- The commit of the clone in `dir`, read without a shell, or nil.
+-- The commit of the clone in `dir`, read without a shell: the hash, or nil plus a reason.
 local function read_commit(dir)
   local head = first_line(dir .. "/.git/HEAD")
   if head == nil then
-    return nil
+    local gitfile = first_line(dir .. "/.git")
+    if gitfile ~= nil and s_match(gitfile, "^gitdir:") ~= nil then
+      return nil, ".git is a gitfile (worktree or submodule layout), which the pin cannot read"
+    end
+    return nil, "no readable .git/HEAD"
   end
   if is_hash(head) then
     return head -- detached HEAD
@@ -104,18 +108,18 @@ local function read_commit(dir)
   local ref = s_match(head, "^ref: (.+)$")
   if ref == nil or s_sub(ref, 1, 1) == "/" or s_find(ref, "..", 1, true) ~= nil
     or s_find(ref, "[%c\\]") ~= nil then
-    return nil
+    return nil, "unparseable .git/HEAD (unsupported ref storage?)"
   end
   local loose = first_line(dir .. "/.git/" .. ref)
   if loose ~= nil then
     if is_hash(loose) then
       return loose
     end
-    return nil -- unreadable or symbolic: cannot prove anything
+    return nil, "ref " .. ref .. " is not a plain commit hash"
   end
   local h = io_open(dir .. "/.git/packed-refs", "r")
   if h == nil then
-    return nil
+    return nil, "ref " .. ref .. " not found as a loose ref and there is no packed-refs (reftable?)"
   end
   local found = nil
   while true do
@@ -130,6 +134,9 @@ local function read_commit(dir)
     end
   end
   close(h)
+  if found == nil then
+    return nil, "ref " .. ref .. " not found in packed-refs"
+  end
   return found
 end
 
@@ -150,9 +157,10 @@ local function check(event)
   if type(dir) ~= "string" or dir == "" then
     fail("aurdeck: " .. base .. ": hook event has no clone directory; refusing to build")
   end
-  local commit = read_commit(dir)
+  local commit, why = read_commit(dir)
   if commit == nil then
-    fail("aurdeck: " .. base .. ": cannot read the fetched commit from " .. dir .. "; refusing to build")
+    fail("aurdeck: " .. base .. ": cannot read the fetched commit from " .. dir .. ": " ..
+      tostring(why) .. "; refusing to build")
   end
   if commit ~= want.commit then
     fail("aurdeck: " .. base .. " changed since review (approved " .. want.commit ..

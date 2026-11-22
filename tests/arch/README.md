@@ -4,7 +4,7 @@ Runs aurdeck's install and remove path against real pacman and real yay, in a di
 
 ```sh
 tests/arch/run.sh                      # all scenarios
-tests/arch/run.sh repo-install         # or aur-install, pin-commit-mismatch, pin-unapproved-base, pin-unreviewed-upgrade, remove
+tests/arch/run.sh repo-install         # or aur-install, pin-commit-mismatch, pin-pkgbuild-mismatch, pin-unapproved-base, pin-unreviewed-upgrade, remove
 tests/arch/run.sh aur-install --no-overlay
 ```
 
@@ -27,8 +27,8 @@ Each one goes through the same path as the desktop app: `PlanContext` from a rea
 | `repo-install` | `yay -Syu --needed -- tree` (the planner requires a full upgrade with repo installs) | `tree` installed; no AUR or foreign package was built or changed |
 | `aur-install` | fetch and approve `downgrade`, `yay -S --needed --answerdiff None --answeredit None -- downgrade` with the overlay | `downgrade` installed, it is the only foreign package added, and the commit yay built (HEAD of `~/.cache/yay/downgrade`) equals the approved commit |
 | `pin-commit-mismatch` | approve the commit before HEAD of `downgrade` (with its PKGBUILD) while yay fetches HEAD | transaction fails, yay prints `aurdeck: downgrade changed since review ...`, nothing is built, `downgrade` absent |
-| `pin-unapproved-base` | queue `downgrade` with a forged `Approved` in the plan context but an empty approved table in the overlay | yay prints `aurdeck: downgrade was not reviewed in aurdeck ...`, `downgrade` absent (the overlay alone) |
-| `pin-unreviewed-upgrade` | install the previous `downgrade` commit with makepkg as `dev` (setup), then `yay -Syu --needed ... -- pacman-cleanup-hook` with only `pacman-cleanup-hook` approved, exclude menu answered empty so the pending AUR upgrade is attempted | yay aborts on `downgrade` (`aurdeck: ... was not reviewed`) before building anything; `downgrade` still at the old version, `pacman-cleanup-hook` absent; `downgrade` removed afterwards |
+| `pin-pkgbuild-mismatch` | approve the correct HEAD commit of `downgrade` but a modified PKGBUILD text through `create_pinned` | yay prints `aurdeck: downgrade: the PKGBUILD differs from the reviewed one ...`, nothing is built, `downgrade` absent |\n| `pin-unapproved-base` | queue `downgrade` with a forged `Approved` in the plan context but an empty approved table in the overlay | yay prints `aurdeck: downgrade was not reviewed in aurdeck ...`, `downgrade` absent (the overlay alone) |
+| `pin-unreviewed-upgrade` | install the previous `downgrade` commit with makepkg as `dev` (setup), then (after checking the old version is lower than the AUR's with `vercmp`) `yay -Syu --needed ... -- pacman-cleanup-hook` with only `pacman-cleanup-hook` approved, exclude menu answered empty so the pending AUR upgrade is attempted | yay aborts on `downgrade` (`aurdeck: ... was not reviewed`) before building anything; `downgrade` still at the old version, `pacman-cleanup-hook` absent; `downgrade` (and `pacman-cleanup-hook` if present) removed afterwards |
 | `remove` | `yay -Rs -- tree` (installs it first if absent) | `tree` absent; no foreign package changed |
 
 `--no-overlay` on `aur-install` builds without the review-pin overlay. It is a diagnostic only, to separate "the build works" from "the overlay works"; the real scenario keeps the overlay. The pin scenarios cover the negative cases (see the table); `all` runs them before `aur-install`, which needs `downgrade` absent.

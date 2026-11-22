@@ -46,12 +46,14 @@ pub fn run(cli: &Cli) -> Res {
         Which::RepoInstall => repo_install(&pw),
         Which::AurInstall => aur_install(&pw, cli.no_overlay),
         Which::PinCommitMismatch => pin_commit_mismatch(&pw),
+        Which::PinPkgbuildMismatch => pin_pkgbuild_mismatch(&pw),
         Which::PinUnapprovedBase => pin_unapproved_base(&pw),
         Which::PinUnreviewedUpgrade => pin_unreviewed_upgrade(&pw),
         Which::Remove => remove(&pw),
         Which::All => {
             repo_install(&pw)?;
             pin_commit_mismatch(&pw)?;
+            pin_pkgbuild_mismatch(&pw)?;
             pin_unapproved_base(&pw)?;
             pin_unreviewed_upgrade(&pw)?;
             aur_install(&pw, cli.no_overlay)?;
@@ -453,6 +455,31 @@ fn pin_commit_mismatch(pw: &str) -> Res {
     expect_absent(AUR_PACKAGE, "post-condition")
 }
 
+fn pin_pkgbuild_mismatch(pw: &str) -> Res {
+    banner("pin-pkgbuild-mismatch");
+    aur_precondition(AUR_PACKAGE)?;
+    let mut f = fetch_aur(AUR_PACKAGE)?;
+    let commit = f.fetched.commit.clone();
+    f.store
+        .approve(&f.fetched.pkgbase, &commit, None, now())
+        .map_err(|e| e.to_string())?;
+    let status = review_status(f.store.latest(&f.fetched.pkgbase), Some(&commit), None);
+    let ctx = ctx_with(vec![(AUR_PACKAGE, status)])?;
+    let commands = plan(&[install_aur(AUR_PACKAGE)?], &ctx).map_err(|e| format!("plan: {e}"))?;
+    // The right commit, but not the PKGBUILD text yay will report.
+    let modified = format!("{}\n# reviewed text differs\n", f.pkgbuild()?);
+    let overlay = Overlay::create_pinned(&user_config()?, &approved_at(&f, &commit, modified))
+        .map_err(|e| format!("overlay: {e}"))?;
+    let out = run_tx(commands, overlay.env(), pw, prompts::EXCLUDE_AUR_UPGRADES)?;
+    drop(overlay);
+    expect_pin_abort(
+        &out,
+        AUR_PACKAGE,
+        Some("PKGBUILD differs from the reviewed one"),
+    )?;
+    expect_absent(AUR_PACKAGE, "post-condition")
+}
+
 fn pin_unapproved_base(pw: &str) -> Res {
     banner("pin-unapproved-base");
     aur_precondition(AUR_PACKAGE)?;
@@ -544,8 +571,9 @@ fn install_old_build(f: &Fetch, old: &str, pw: &str) -> Res {
         .map_err(|e| format!("sudo: {e}"))?;
     {
         let mut stdin = sudo.stdin.take().ok_or("no stdin")?;
+        let line = Zeroizing::new(format!("{pw}\n"));
         stdin
-            .write_all(format!("{pw}\n").as_bytes())
+            .write_all(line.as_bytes())
             .map_err(|e| e.to_string())?;
     }
     let out = sudo.wait_with_output().map_err(|e| e.to_string())?;
@@ -580,20 +608,68 @@ fn pin_unreviewed_upgrade(pw: &str) -> Res {
         old_pkg.fetched.commit
     );
 
-    let result = pin_unreviewed_upgrade_run(&new_pkg, &old_pkg, &before, pw);
-    // Cleanup, whatever happened: remove the setup package through the planner.
-    println!("cleanup: removing {AUR_PACKAGE} (not under test)");
-    let cleanup = name(AUR_PACKAGE).and_then(|n| {
-        let q = [QueueItem::Remove {
-            name: n,
-            mode: RemoveMode::WithDeps,
-        }];
-        let cmds = plan(&q, &PlanContext::default()).map_err(|e| format!("plan: {e}"))?;
-        drive(cmds, Vec::new(), pw)
-    });
+    let result = check_older_is_lower(&old_pkg, &old, &before)
+        .and_then(|()| pin_unreviewed_upgrade_run(&new_pkg, &old_pkg, &before, pw));
+    // Cleanup, whatever happened: remove whatever of the two packages is installed.
+    let mut left = Vec::new();
+    for pkg in [AUR_PACKAGE, AUR_PACKAGE_2] {
+        if installed_version(pkg)?.is_some() {
+            left.push(name(pkg)?);
+        }
+    }
+    let cleanup = if left.is_empty() {
+        Ok(())
+    } else {
+        println!("cleanup: removing {left:?} (not under test)");
+        let q: Vec<QueueItem> = left
+            .into_iter()
+            .map(|n| QueueItem::Remove {
+                name: n,
+                mode: RemoveMode::WithDeps,
+            })
+            .collect();
+        plan(&q, &PlanContext::default())
+            .map_err(|e| format!("plan: {e}"))
+            .and_then(|cmds| drive(cmds, Vec::new(), pw))
+    };
     result?;
     cleanup?;
-    expect_absent(AUR_PACKAGE, "cleanup")
+    expect_absent(AUR_PACKAGE, "cleanup")?;
+    expect_absent(AUR_PACKAGE_2, "cleanup")
+}
+
+/// `pkgver-pkgrel` (with `epoch:` when set) from PKGBUILD text.
+fn pkgbuild_version(text: &str) -> Option<String> {
+    let get = |key: &str| {
+        text.lines()
+            .find_map(|l| l.strip_prefix(key))
+            .map(|v| v.trim().trim_matches(['"', '\'']).to_owned())
+    };
+    let ver = get("pkgver=")?;
+    let rel = get("pkgrel=")?;
+    Some(match get("epoch=") {
+        Some(e) if e != "0" => format!("{e}:{ver}-{rel}"),
+        _ => format!("{ver}-{rel}"),
+    })
+}
+
+/// The setup only proves the pin if the installed (older) version is really
+/// lower than what the AUR has, so yay sees an upgrade.
+fn check_older_is_lower(f: &Fetch, old: &str, installed: &str) -> Res {
+    let head = pkgbuild_version(&f.pkgbuild()?).ok_or("cannot read the version at HEAD")?;
+    let older = pkgbuild_version(&f.pkgbuild_at(old)?).ok_or("cannot read the older version")?;
+    let out = std::process::Command::new("vercmp")
+        .args([installed, &head])
+        .output()
+        .map_err(|e| format!("cannot run vercmp: {e}"))?;
+    let cmp = String::from_utf8_lossy(&out.stdout).trim().to_owned();
+    if cmp != "-1" {
+        return Err(format!(
+            "setup is wrong: installed {installed} (older commit says {older}) is not lower than the AUR's {head} (vercmp {cmp}), so there is no AUR upgrade to refuse"
+        ));
+    }
+    println!("setup ok: installed {installed} < AUR {head}");
+    Ok(())
 }
 
 fn pin_unreviewed_upgrade_run(new_pkg: &Fetch, old_pkg: &Fetch, before: &str, pw: &str) -> Res {
@@ -690,6 +766,7 @@ fn run_tx(
     let mut last_output = Instant::now();
     let mut raw: Vec<u8> = Vec::new();
     let mut current_args: Vec<String> = Vec::new();
+    let mut exclude_once = prompts::ExcludeOnce::default();
 
     loop {
         if failure.is_none() && Instant::now() >= deadline {
@@ -751,6 +828,15 @@ fn run_tx(
             TxEvent::Prompt(p) => {
                 println!("\n[prompt] {p:?}");
                 screen.prompt_reported();
+                if failure.is_none()
+                    && p.menu_kind() == Some(aurdeck_yay_runner::MenuKind::UpgradeExclude)
+                    && !exclude_once.allow()
+                {
+                    failure = Some(
+                        "the exclude menu appeared twice in one transaction; not answering again"
+                            .into(),
+                    );
+                }
                 if failure.is_none()
                     && let Err(e) = answer(&handle, &p, password, &current_args, exclude)
                 {

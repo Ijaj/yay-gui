@@ -30,6 +30,18 @@ pub const EXCLUDE_AUR_UPGRADES: &str = "aur";
 /// upgrades are really attempted (`pin-unreviewed-upgrade`).
 pub const EXCLUDE_NOTHING: &str = "";
 
+/// Bound on the exclude menu: it is answered at most once per transaction; a
+/// repeat means yay is looping on it and fails the scenario.
+#[derive(Debug, Default)]
+pub struct ExcludeOnce(bool);
+
+impl ExcludeOnce {
+    /// True the first time, false for every later exclude menu.
+    pub fn allow(&mut self) -> bool {
+        !std::mem::replace(&mut self.0, true)
+    }
+}
+
 /// What to do with a menu the detector reported.
 #[derive(Debug, PartialEq, Eq)]
 pub enum MenuAction {
@@ -124,6 +136,16 @@ mod tests {
     fn strips_ansi() {
         let raw = b"\x1b[1m::\x1b[0m hi\x1b]3008;start=x\x1b\\there \x1b]0;t\x07ok";
         assert_eq!(strip_ansi(raw), ":: hithere ok");
+    }
+
+    #[test]
+    fn the_exclude_menu_is_answered_once_per_transaction() {
+        let mut once = ExcludeOnce::default();
+        assert!(once.allow());
+        assert!(!once.allow());
+        assert!(!once.allow());
+        // a new transaction starts fresh
+        assert!(ExcludeOnce::default().allow());
     }
 
     #[test]
