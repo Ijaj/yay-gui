@@ -4,7 +4,7 @@ Runs aurdeck's install and remove path against real pacman and real yay, in a di
 
 ```sh
 tests/arch/run.sh                      # all scenarios
-tests/arch/run.sh repo-install         # or aur-install, remove
+tests/arch/run.sh repo-install         # or aur-install, pin-commit-mismatch, pin-unapproved-base, pin-unreviewed-upgrade, remove
 tests/arch/run.sh aur-install --no-overlay
 ```
 
@@ -20,19 +20,23 @@ tests/arch/run.sh aur-install --no-overlay
 
 ## Scenarios
 
-Each one goes through the same path as the desktop app: `PlanContext` from a real `ReviewStore` (temp dir), AUR packages fetched with `AurGit` and approved at the fetched commit, a review-pin `Overlay` passed through `TxConfig.env`, commands from `aurdeck_core::plan`, run with `start_transaction`. Prompts are answered from the table in `crates/arch-harness/src/prompts.rs`; an unrecognised prompt (any other bare `==>` menu, or no output for 120 s) or a 10-minute timeout fails the scenario; after a cancel the harness exits non-zero if the transaction does not stop within 15 s. Post-conditions are read from the real local pacman database with `aurdeck-alpm-reader`.
+Each one goes through the same path as the desktop app: `PlanContext` from a real `ReviewStore` (temp dir), AUR packages fetched with `AurGit` and approved at the fetched commit, a review-pin `Overlay` (commit and PKGBUILD text per approved base) passed through `TxConfig.env`, commands from `aurdeck_core::plan`, run with `start_transaction`. Prompts are answered from the table in `crates/arch-harness/src/prompts.rs`: yay's menus arrive as `PromptEvent::Menu` and are classified with `menu_kind()` (the exclude menu gets `aur`, or empty in `pin-unreviewed-upgrade`; `CleanBuild` gets `N`; `Diffs`/`Edit` are ignored only when the plan passed `--answerdiff`/`--answeredit`); an unrecognised prompt (any other menu, or no output for 120 s) or a 10-minute timeout fails the scenario; after a cancel the harness exits non-zero if the transaction does not stop within 15 s. Post-conditions are read from the real local pacman database with `aurdeck-alpm-reader`.
 
 | Scenario | What it does | Post-condition |
 | --- | --- | --- |
 | `repo-install` | `yay -Syu --needed -- tree` (the planner requires a full upgrade with repo installs) | `tree` installed; no AUR or foreign package was built or changed |
 | `aur-install` | fetch and approve `downgrade`, `yay -S --needed --answerdiff None --answeredit None -- downgrade` with the overlay | `downgrade` installed, it is the only foreign package added, and the commit yay built (HEAD of `~/.cache/yay/downgrade`) equals the approved commit |
+| `pin-commit-mismatch` | approve the commit before HEAD of `downgrade` (with its PKGBUILD) while yay fetches HEAD | transaction fails, yay prints `aurdeck: downgrade changed since review ...`, nothing is built, `downgrade` absent |
+| `pin-unapproved-base` | queue `downgrade` with a forged `Approved` in the plan context but an empty approved table in the overlay | yay prints `aurdeck: downgrade was not reviewed in aurdeck ...`, `downgrade` absent (the overlay alone) |
+| `pin-unreviewed-upgrade` | install the previous `downgrade` commit with makepkg as `dev` (setup), then `yay -Syu --needed ... -- pacman-cleanup-hook` with only `pacman-cleanup-hook` approved, exclude menu answered empty so the pending AUR upgrade is attempted | yay aborts on `downgrade` (`aurdeck: ... was not reviewed`) before building anything; `downgrade` still at the old version, `pacman-cleanup-hook` absent; `downgrade` removed afterwards |
 | `remove` | `yay -Rs -- tree` (installs it first if absent) | `tree` absent; no foreign package changed |
 
-`--no-overlay` on `aur-install` builds without the review-pin overlay. It is a diagnostic only, to separate "the build works" from "the overlay works"; the real scenario keeps the overlay. The wrong-pin negative case (approved commit differs from what yay would build, the build must abort) needs a working overlay and belongs to P0.5.
+`--no-overlay` on `aur-install` builds without the review-pin overlay. It is a diagnostic only, to separate "the build works" from "the overlay works"; the real scenario keeps the overlay. The pin scenarios cover the negative cases (see the table); `all` runs them before `aur-install`, which needs `downgrade` absent.
 
 ## Test packages
 
 - Repo: `tree` (extra). A few dozen KiB, depends only on glibc, nothing else to download.
+- Second AUR package (`pin-unreviewed-upgrade`): `pacman-cleanup-hook`, `arch=(any)`, one local source file, depends on `pacman-contrib` only.
 - AUR: `downgrade`. `arch=('any')`, a bash script; depends on the repo packages `pacman-contrib` and `fzf` (installed by yay as dependencies), one source tarball from a `github.com` release, builds in about a second. It is its own pkgbase and nothing else provides its name. The scenario refuses to run if the name ever appears in a sync repo. Two candidates were dropped: `pfetch` resolves to `extra/pfetch-rs` since 2026, so yay installed the repo package; `pkgbuild-introspection` is gone from the AUR (only `-git`, built from a `git://` GitHub clone the proxy refuses, was offered), and yay silently built that instead of the package the harness had fetched and approved.
 
 ## Network
@@ -41,5 +45,4 @@ Inside the cloud agent container, traffic goes through a proxy. `run.sh` passes 
 
 ## Known gaps found by this harness
 
-- `PromptDetector` does not report yay's `==> Packages to exclude:` menu (its options line is ` -> Excluding packages may cause partial upgrades`, not `[N]one`), which appears on every `yay -Syu` with something to install. The harness (`src/screen.rs`) answers it only when the last non-empty line of the screen is that menu's own bare `==>` prompt, at most once per command, and fails on any other bare `==>` menu. Remove this when the detector learns the prompt. The desktop app has the same blind spot.
-- The answer is `aur`, not empty. Verified on yay v13.1.0 with an outdated AUR package installed: `--answerupgrade aur` (same parser as the menu) printed "there is nothing to do" and left it at the old version, while an empty answer upgraded and rebuilt it. An empty answer would let a repo scenario build unreviewed AUR updates. The planner's `-Syu` pulling in AUR updates in the app is a separate issue for the planner's owner.
+- In repo scenarios the exclude answer is `aur`, not empty. Verified on yay v13.1.0 with an outdated AUR package installed: `--answerupgrade aur` (same parser as the menu) printed "there is nothing to do" and left it at the old version, while an empty answer upgraded and rebuilt it. An empty answer would let a repo scenario build unreviewed AUR updates. The planner's `-Syu` pulling in AUR updates in the app is a separate issue for the planner's owner.

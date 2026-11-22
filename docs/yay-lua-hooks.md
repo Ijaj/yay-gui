@@ -188,3 +188,11 @@ sudo needs a password, yay from `yay-bin`). Each experiment ran:
 `init.lua` used in the experiments is a few lines and is quoted above. The dump hook printed
 `event`/`data` keys with `pairs`, then the `.git/HEAD`, `io.popen` and `os.execute` results quoted in
 section 4.
+
+## Implemented in P0.5a
+
+`crates/yay-runner/src/overlay_init.lua.tmpl` now follows section 7: captures first, user init second, the pin registered last on `AURPreInstall` and `AURPostDownload`, commit read from `.git` in pure Lua, abort with `aurdeck:` messages. It checks the commit and the PKGBUILD text (`event.data.pkgbuild`) of every base. Proven in the Arch container by `pin-commit-mismatch`, `pin-unapproved-base` and `pin-unreviewed-upgrade` (`tests/arch/README.md`); in the last one a full upgrade with an unreviewed pending AUR update aborted on that base before anything was built. Observed: with `-Syu`, yay printed the exclude menu and fetched PKGBUILDs before the hook fired; `AURPreInstall` runs per base in sorted order, so the first unapproved base aborts the run.
+
+Known gaps, not covered by the pin (owner decision, section 7 item 6): no clean-work-tree check, so local edits and untracked files in the clone ride along; gitignored files in the clone are not covered by the commit pin at all. The user's own `init.lua` runs with the user's full privileges.
+
+`-git` (devel) package, run twice through yay in a throwaway container (`pfetch-git`, `--devel`, second run forced without `--needed`): `pkgver()` did NOT rewrite `PKGBUILD` in the cached clone. `event.data.pkgbuild` and its md5 were identical on both runs (`pkgver=r340...`), only untracked files appeared (`pfetch/`, the built package), so the PKGBUILD-text pin did not fail closed there. Not tested: a `-git` package whose `pkgver()` edits tracked files, and the commit of a devel update (the commit changes with every upstream push of the AUR repo only).

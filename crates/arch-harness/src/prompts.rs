@@ -1,6 +1,8 @@
 //! The explicit table of prompts the harness answers. Anything else fails the
 //! scenario: the harness never answers a question it does not recognise.
 
+use aurdeck_yay_runner::MenuKind;
+
 /// Answers for `[Y/n]` and `[y/N]` questions: `(text the question contains, answer)`.
 /// Matching is case-insensitive on the question text without the `::` marker.
 pub const YES_NO: &[(&str, bool)] = &[
@@ -10,20 +12,52 @@ pub const YES_NO: &[(&str, bool)] = &[
     ("proceed with removal", true),
 ];
 
-/// Answers for yay `==>` menus the detector reports: `(text the menu contains, line to type)`.
-pub const MENUS: &[(&str, &str)] = &[
-    // "Packages to cleanBuild?" with options "[N]one [A]ll [Ab]ort [I]nstalled [No]tInstalled":
-    // nothing needs a clean build in a fresh container.
-    ("packages to cleanbuild", "N"),
-];
+/// Answers for yay `==>` menus the detector reports, by kind. Nothing needs a
+/// clean build in a fresh container. `UpgradeExclude` is answered per scenario
+/// (see [`EXCLUDE_AUR_UPGRADES`] and [`EXCLUDE_NOTHING`]); `Diffs` and `Edit`
+/// are never answered here (see [`MenuAction`]).
+pub const MENUS: &[(MenuKind, &str)] = &[(MenuKind::CleanBuild, "N")];
 
-/// Answer to yay's `==> Packages to exclude:` menu (`-Syu`), which
-/// `PromptDetector` does not report. `aur` names the repository of every AUR
-/// package, so all pending AUR upgrades are excluded: a repo scenario must
-/// never build an AUR package, reviewed or not. Verified against yay v13.1.0
-/// with an outdated AUR package installed: `aur` leaves it alone ("there is
-/// nothing to do"), an empty answer upgrades it.
+/// Answer to yay's `==> Packages to exclude:` menu (`-Syu`) in repo scenarios.
+/// `aur` names the repository of every AUR package, so all pending AUR
+/// upgrades are excluded: a repo scenario must never build an AUR package,
+/// reviewed or not. Verified against yay v13.1.0 with an outdated AUR package
+/// installed: `aur` leaves it alone ("there is nothing to do"), an empty
+/// answer upgrades it.
 pub const EXCLUDE_AUR_UPGRADES: &str = "aur";
+
+/// Empty answer to the exclude menu: nothing is excluded, so pending AUR
+/// upgrades are really attempted (`pin-unreviewed-upgrade`).
+pub const EXCLUDE_NOTHING: &str = "";
+
+/// What to do with a menu the detector reported.
+#[derive(Debug, PartialEq, Eq)]
+pub enum MenuAction {
+    /// Type this line (plus Enter).
+    Answer(&'static str),
+    /// yay answers this one itself (the plan passed the matching flag).
+    Ignore,
+    /// Not recognised: fail the scenario.
+    Unknown,
+}
+
+/// Decides what to do with a menu. `args` are the arguments of the running
+/// command; `exclude` is the scenario's answer to the exclude menu.
+#[must_use]
+pub fn menu_action(kind: MenuKind, args: &[String], exclude: &'static str) -> MenuAction {
+    let has = |flag: &str| args.iter().any(|a| a == flag);
+    match kind {
+        MenuKind::UpgradeExclude => MenuAction::Answer(exclude),
+        MenuKind::Diffs if has("--answerdiff") => MenuAction::Ignore,
+        MenuKind::Edit if has("--answeredit") => MenuAction::Ignore,
+        MenuKind::CleanBuild if has("--answerclean") => MenuAction::Ignore,
+        MenuKind::CleanBuild => MENUS
+            .iter()
+            .find(|(k, _)| *k == kind)
+            .map_or(MenuAction::Unknown, |(_, a)| MenuAction::Answer(a)),
+        MenuKind::Diffs | MenuKind::Edit | MenuKind::Other => MenuAction::Unknown,
+    }
+}
 
 /// Removes ANSI escape sequences (CSI and OSC) for matching.
 #[must_use]
@@ -68,16 +102,6 @@ pub fn yes_no(question: &str) -> Option<bool> {
         .map(|(_, a)| *a)
 }
 
-/// Looks up the line to type for a menu.
-#[must_use]
-pub fn menu(text: &str) -> Option<&'static str> {
-    let t = text.to_lowercase();
-    MENUS
-        .iter()
-        .find(|(needle, _)| t.contains(needle))
-        .map(|(_, a)| *a)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,7 +128,42 @@ mod tests {
 
     #[test]
     fn menus() {
-        assert_eq!(menu("==> Packages to cleanBuild?\n[N]one"), Some("N"));
-        assert_eq!(menu("==> Diffs to show?"), None);
+        let none: Vec<String> = Vec::new();
+        let flags: Vec<String> = ["--answerdiff", "None", "--answeredit", "None"]
+            .map(String::from)
+            .to_vec();
+        assert_eq!(
+            menu_action(MenuKind::CleanBuild, &none, "aur"),
+            MenuAction::Answer("N")
+        );
+        assert_eq!(
+            menu_action(MenuKind::UpgradeExclude, &none, "aur"),
+            MenuAction::Answer("aur")
+        );
+        assert_eq!(
+            menu_action(MenuKind::UpgradeExclude, &none, EXCLUDE_NOTHING),
+            MenuAction::Answer("")
+        );
+        assert_eq!(
+            menu_action(MenuKind::Diffs, &flags, "aur"),
+            MenuAction::Ignore
+        );
+        assert_eq!(
+            menu_action(MenuKind::Edit, &flags, "aur"),
+            MenuAction::Ignore
+        );
+        // without the flag the harness never answers a diff or edit menu
+        assert_eq!(
+            menu_action(MenuKind::Diffs, &none, "aur"),
+            MenuAction::Unknown
+        );
+        assert_eq!(
+            menu_action(MenuKind::Edit, &none, "aur"),
+            MenuAction::Unknown
+        );
+        assert_eq!(
+            menu_action(MenuKind::Other, &flags, "aur"),
+            MenuAction::Unknown
+        );
     }
 }
