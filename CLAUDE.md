@@ -80,6 +80,7 @@ Review tiers for agent work (docs/COMPLETION_PLAN.md 3.3):
 - Outbound traffic goes through the agent proxy, so run containers with `--network host -e HTTPS_PROXY -e https_proxy` and add `/root/.ccr/ca-bundle.crt` as a trust anchor (`trust anchor --store`, then `update-ca-trust`).
 - Allowed Arch hosts: `aur.archlinux.org`, `fastly.mirror.pkgbuild.com`, `geo.mirror.pkgbuild.com`. Anything else is refused; ask the orchestrator, do not route around it.
 - Build and test as a non-root user inside the container; `makepkg` and the app both refuse root.
+- `tests/arch/run.sh [repo-install|aur-install|remove|all]` builds the image (`tests/arch/Dockerfile`: non-root `dev` with a sudo password, yay) and runs `crates/arch-harness` inside it. It adds the proxy variables and CA by itself when `HTTPS_PROXY` is set. See `tests/arch/README.md`.
 
 ## Hot files (parallel-worker collisions)
 
